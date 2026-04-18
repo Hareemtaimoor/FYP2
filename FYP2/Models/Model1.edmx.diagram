@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<edmx:Edmx Version="3.0" xmlns:edmx="http://schemas.microsoft.com/ado/2009/11/edmx">
+ <!-- EF Designer content (DO NOT EDIT MANUALLY BELOW HERE) -->
+  <edmx:Designer xmlns="http://schemas.microsoft.com/ado/2009/11/edmx">
+    <!-- Diagram content (shape and connector positions) -->
+    <edmx:Diagrams>
+      <Diagram DiagramId="ace668d8c7254233acb2fe27fae3fa1a" Name="Diagram1">
+        <EntityTypeShape EntityType="Teacher_Evaluation_SystemModel.Crsdtl" Width="1.5" PointX="3" PointY="1.125" IsExpanded="true" />
+        <EntityTypeShape EntityType="Teacher_Evaluation_SystemModel.CRSMTR" Width="1.5" PointX="0.75" PointY="2.25" IsExpanded="true" />
+        <EntityTypeShape EntityType="Teacher_Evaluation_SystemModel.EMPMTR_0" Width="1.5" PointX="5.75" PointY="0.75" IsExpanded="true" />
+        <EntityTypeShape EntityType="Teacher_Evaluation_SystemModel.Project" Width="1.5" PointX="5.75" PointY="6.75" IsExpanded="true" />
+        <EntityTypeShape EntityType="Teacher_Evaluation_SystemModel.Question_Answer" Width="1.5" PointX="7.75" PointY="0.75" IsExpanded="true" />
+        <EntityTypeShape EntityType="Teacher_Evaluation_SystemModel.SEMMTR" Width="1.5" PointX="0.75" PointY="6.5" IsExpanded="true" />
+        <EntityTypeShape EntityType="Teacher_Evaluation_SystemModel.STMTR" Width="1.5" PointX="0.75" PointY="9.125" IsExpanded="true" />
+        <EntityTypeShape EntityType="Teacher_Evaluation_SystemModel.ALLOCATE" Width="1.5" PointX="2.75" PointY="7.75" IsExpanded="true" />
+        <EntityTypeShape EntityType="Teacher_Evaluation_SystemModel.Log_In" Width="1.5" PointX="9.75" PointY="0.75" IsExpanded="true" />
+        <AssociationConnector Association="Teacher_Evaluation_SystemModel.FK_DISCRS" ManuallyRouted="false" />
+        <AssociationConnector Association="Teacher_Evaluation_SystemModel.fk_reg" ManuallyRouted="false" />
+        <AssociationConnector Association="Teacher_Evaluation_SystemModel.fk_semno" ManuallyRouted="false" />
+        <EntityTypeShape EntityType="Teacher_Evaluation_SystemModel.Eval" Width="1.5" PointX="8.375" PointY="6.75" />
+        <EntityTypeShape EntityType="Teacher_Evaluation_SystemModel.AttendanceRecord" Width="1.5" PointX="10.375" PointY="4.75" />
+        <EntityTypeShape EntityType="Teacher_Evaluation_SystemModel.ClassReport" Width="1.5" PointX="3" PointY="11.875" />
+        <EntityTypeShape EntityType="Teacher_Evaluation_SystemModel.v_ClassHeldReport" Width="1.5" PointX="5.375" PointY="10.75" />
+        <EntityTypeShape EntityType="Teacher_Evaluation_SystemModel.v_FullClassReport" Width="1.5" PointX="7.375" PointY="10.75" />
+        <EntityTypeShape EntityType="Teacher_Evaluation_SystemModel.v_FullClassReport_Course" Width="1.5" PointX="10.375" PointY="8.75" />
+        <EntityTypeShape EntityType="Teacher_Evaluation_SystemModel.v_TeacherAttendance_EMPMTR" Width="1.5" PointX="12.375" PointY="0.75" />
+        <AssociationConnector Association="Teacher_Evaluation_SystemModel.FK_Course" />
+        <EntityTypeShape EntityType="Teacher_Evaluation_SystemModel.EMPMTR" Width="1.5" PointX="12.375" PointY="4.75" />
+      </Diagram>
+    </edmx:Diagrams>
+  </edmx:Designer>
+</edmx:Edmx>
