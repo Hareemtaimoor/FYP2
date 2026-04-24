@@ -4,7 +4,7 @@
   <edmx:Designer xmlns="http://schemas.microsoft.com/ado/2009/11/edmx">
     <!-- Diagram content (shape and connector positions) -->
     <edmx:Diagrams>
-      <Diagram DiagramId="ace668d8c7254233acb2fe27fae3fa1a" Name="Diagram1">
+      <Diagram DiagramId="ace668d8c7254233acb2fe27fae3fa1a" Name="Diagram1" ZoomLevel="74">
         <EntityTypeShape EntityType="Teacher_Evaluation_SystemModel.Crsdtl" Width="1.5" PointX="3" PointY="1.125" IsExpanded="true" />
         <EntityTypeShape EntityType="Teacher_Evaluation_SystemModel.CRSMTR" Width="1.5" PointX="0.75" PointY="2.25" IsExpanded="true" />
         <EntityTypeShape EntityType="Teacher_Evaluation_SystemModel.EMPMTR_0" Width="1.5" PointX="5.75" PointY="0.75" IsExpanded="true" />
@@ -26,6 +26,9 @@
         <EntityTypeShape EntityType="Teacher_Evaluation_SystemModel.v_TeacherAttendance_EMPMTR" Width="1.5" PointX="12.375" PointY="0.75" />
         <AssociationConnector Association="Teacher_Evaluation_SystemModel.FK_Course" />
         <EntityTypeShape EntityType="Teacher_Evaluation_SystemModel.EMPMTR" Width="1.5" PointX="12.375" PointY="4.75" />
+        <EntityTypeShape EntityType="Teacher_Evaluation_SystemModel.Accgpa" Width="1.5" PointX="6" PointY="15.5" />
+        <AssociationConnector Association="Teacher_Evaluation_SystemModel.fk_semno1" />
+        <AssociationConnector Association="Teacher_Evaluation_SystemModel.fk1_reg_no" />
       </Diagram>
     </edmx:Diagrams>
   </edmx:Designer>

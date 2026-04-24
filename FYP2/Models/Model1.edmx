@@ -5,6 +5,29 @@
     <!-- SSDL content -->
     <edmx:StorageModels>
     <Schema Namespace="Teacher_Evaluation_SystemModel.Store" Provider="System.Data.SqlClient" ProviderManifestToken="2012" Alias="Self" xmlns:store="http://schemas.microsoft.com/ado/2007/12/edm/EntityStoreSchemaGenerator" xmlns:customannotation="http://schemas.microsoft.com/ado/2013/11/edm/customannotation" xmlns="http://schemas.microsoft.com/ado/2009/11/edm/ssdl">
+        <EntityType Name="Accgpa">
+          <Key>
+            <PropertyRef Name="REG_NO" />
+            <PropertyRef Name="SEMESTER_NO" />
+            <PropertyRef Name="SECTION" />
+          </Key>
+          <Property Name="REG_NO" Type="varchar" MaxLength="14" Nullable="false" />
+          <Property Name="SEMESTER_NO" Type="varchar" MaxLength="12" Nullable="false" />
+          <Property Name="CHAR_WORK" Type="char" MaxLength="1" />
+          <Property Name="SYN_INT" Type="char" MaxLength="1" />
+          <Property Name="Q_PREV" Type="decimal" Precision="5" Scale="2" />
+          <Property Name="Q_CURR_SEM" Type="decimal" Precision="5" Scale="2" />
+          <Property Name="Q_TOTAL" Type="decimal" Precision="6" Scale="2" />
+          <Property Name="CR_PREV" Type="decimal" Precision="6" Scale="2" />
+          <Property Name="CR_CURR_SEM" Type="decimal" Precision="6" Scale="2" />
+          <Property Name="CR_TOTAL" Type="decimal" Precision="6" Scale="2" />
+          <Property Name="CGPA" Type="decimal" Precision="6" Scale="2" />
+          <Property Name="USER_ID" Type="varchar" MaxLength="10" />
+          <Property Name="SECTION" Type="char" MaxLength="1" Nullable="false" />
+          <Property Name="SEM_STATUS" Type="char" MaxLength="10" />
+          <Property Name="SemC" Type="int" />
+          <Property Name="dropCount" Type="int" />
+        </EntityType>
         <!--Errors Found During Generation:
 warning 6002: The table/view 'Teacher_Evaluation_System.dbo.ALLOCATE' does not have a primary key defined. The key has been inferred and the definition was created as a read-only table/view.-->
         <EntityType Name="ALLOCATE">
@@ -384,7 +407,32 @@ warning 6002: The table/view 'Teacher_Evaluation_System.dbo.v_TeacherAttendance_
             </Dependent>
           </ReferentialConstraint>
         </Association>
+        <Association Name="fk_semno1">
+          <End Role="SEMMTR" Type="Self.SEMMTR" Multiplicity="1" />
+          <End Role="Accgpa" Type="Self.Accgpa" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="SEMMTR">
+              <PropertyRef Name="Semester_no" />
+            </Principal>
+            <Dependent Role="Accgpa">
+              <PropertyRef Name="SEMESTER_NO" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="fk1_reg_no">
+          <End Role="STMTR" Type="Self.STMTR" Multiplicity="1" />
+          <End Role="Accgpa" Type="Self.Accgpa" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="STMTR">
+              <PropertyRef Name="Reg_No" />
+            </Principal>
+            <Dependent Role="Accgpa">
+              <PropertyRef Name="REG_NO" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
         <EntityContainer Name="Teacher_Evaluation_SystemModelStoreContainer">
+          <EntitySet Name="Accgpa" EntityType="Self.Accgpa" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="AttendanceRecords" EntityType="Self.AttendanceRecords" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="ClassReports" EntityType="Self.ClassReports" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="Crsdtl" EntityType="Self.Crsdtl" Schema="dbo" store:Type="Tables" />
@@ -504,6 +552,14 @@ warning 6002: The table/view 'Teacher_Evaluation_System.dbo.v_TeacherAttendance_
             <End Role="SEMMTR" EntitySet="SEMMTR" />
             <End Role="Crsdtl" EntitySet="Crsdtl" />
           </AssociationSet>
+          <AssociationSet Name="fk_semno1" Association="Self.fk_semno1">
+            <End Role="SEMMTR" EntitySet="SEMMTR" />
+            <End Role="Accgpa" EntitySet="Accgpa" />
+          </AssociationSet>
+          <AssociationSet Name="fk1_reg_no" Association="Self.fk1_reg_no">
+            <End Role="STMTR" EntitySet="STMTR" />
+            <End Role="Accgpa" EntitySet="Accgpa" />
+          </AssociationSet>
         </EntityContainer>
       </Schema></edmx:StorageModels>
     <!-- CSDL content -->
@@ -610,6 +666,7 @@ warning 6002: The table/view 'Teacher_Evaluation_System.dbo.v_TeacherAttendance_
           <Property Name="Start_date" Type="DateTime" Precision="3" />
           <Property Name="End_date" Type="DateTime" Precision="3" />
           <NavigationProperty Name="Crsdtls" Relationship="Self.fk_semno" FromRole="SEMMTR" ToRole="Crsdtl" />
+          <NavigationProperty Name="Accgpas" Relationship="Teacher_Evaluation_SystemModel.fk_semno1" FromRole="SEMMTR" ToRole="Accgpa" />
         </EntityType>
         <EntityType Name="STMTR">
           <Key>
@@ -649,6 +706,7 @@ warning 6002: The table/view 'Teacher_Evaluation_System.dbo.v_TeacherAttendance_
           <Property Name="SOS" Type="String" MaxLength="10" FixedLength="true" Unicode="false" />
           <Property Name="Section" Type="String" MaxLength="1" FixedLength="true" Unicode="false" />
           <NavigationProperty Name="Crsdtls" Relationship="Self.fk_reg" FromRole="STMTR" ToRole="Crsdtl" />
+          <NavigationProperty Name="Accgpas" Relationship="Teacher_Evaluation_SystemModel.fk1_reg_no" FromRole="STMTR" ToRole="Accgpa" />
         </EntityType>
         <EntityType Name="ALLOCATE">
           <Key>
@@ -760,6 +818,15 @@ warning 6002: The table/view 'Teacher_Evaluation_System.dbo.v_TeacherAttendance_
             <End Role="ClassReport" EntitySet="ClassReports" />
           </AssociationSet>
           <EntitySet Name="EMPMTRs" EntityType="Teacher_Evaluation_SystemModel.EMPMTR" />
+          <EntitySet Name="Accgpas" EntityType="Teacher_Evaluation_SystemModel.Accgpa" />
+          <AssociationSet Name="fk_semno1" Association="Teacher_Evaluation_SystemModel.fk_semno1">
+            <End Role="SEMMTR" EntitySet="SEMMTRs" />
+            <End Role="Accgpa" EntitySet="Accgpas" />
+          </AssociationSet>
+          <AssociationSet Name="fk1_reg_no" Association="Teacher_Evaluation_SystemModel.fk1_reg_no">
+            <End Role="STMTR" EntitySet="STMTRs" />
+            <End Role="Accgpa" EntitySet="Accgpas" />
+          </AssociationSet>
         </EntityContainer>
         <EntityType Name="Eval">
           <Key>
@@ -919,6 +986,55 @@ warning 6002: The table/view 'Teacher_Evaluation_System.dbo.v_TeacherAttendance_
           <Property Name="Name" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
           <Property Name="eval" Type="Int32" />
         </EntityType>
+        <EntityType Name="Accgpa">
+          <Key>
+            <PropertyRef Name="REG_NO" />
+            <PropertyRef Name="SEMESTER_NO" />
+            <PropertyRef Name="SECTION" />
+          </Key>
+          <Property Name="REG_NO" Type="String" Nullable="false" MaxLength="14" FixedLength="false" Unicode="false" />
+          <Property Name="SEMESTER_NO" Type="String" Nullable="false" MaxLength="12" FixedLength="false" Unicode="false" />
+          <Property Name="CHAR_WORK" Type="String" MaxLength="1" FixedLength="true" Unicode="false" />
+          <Property Name="SYN_INT" Type="String" MaxLength="1" FixedLength="true" Unicode="false" />
+          <Property Name="Q_PREV" Type="Decimal" Precision="5" Scale="2" />
+          <Property Name="Q_CURR_SEM" Type="Decimal" Precision="5" Scale="2" />
+          <Property Name="Q_TOTAL" Type="Decimal" Precision="6" Scale="2" />
+          <Property Name="CR_PREV" Type="Decimal" Precision="6" Scale="2" />
+          <Property Name="CR_CURR_SEM" Type="Decimal" Precision="6" Scale="2" />
+          <Property Name="CR_TOTAL" Type="Decimal" Precision="6" Scale="2" />
+          <Property Name="CGPA" Type="Decimal" Precision="6" Scale="2" />
+          <Property Name="USER_ID" Type="String" MaxLength="10" FixedLength="false" Unicode="false" />
+          <Property Name="SECTION" Type="String" Nullable="false" MaxLength="1" FixedLength="true" Unicode="false" />
+          <Property Name="SEM_STATUS" Type="String" MaxLength="10" FixedLength="true" Unicode="false" />
+          <Property Name="SemC" Type="Int32" />
+          <Property Name="dropCount" Type="Int32" />
+          <NavigationProperty Name="SEMMTR" Relationship="Teacher_Evaluation_SystemModel.fk_semno1" FromRole="Accgpa" ToRole="SEMMTR" />
+          <NavigationProperty Name="STMTR" Relationship="Teacher_Evaluation_SystemModel.fk1_reg_no" FromRole="Accgpa" ToRole="STMTR" />
+        </EntityType>
+        <Association Name="fk_semno1">
+          <End Type="Teacher_Evaluation_SystemModel.SEMMTR" Role="SEMMTR" Multiplicity="1" />
+          <End Type="Teacher_Evaluation_SystemModel.Accgpa" Role="Accgpa" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="SEMMTR">
+              <PropertyRef Name="Semester_no" />
+            </Principal>
+            <Dependent Role="Accgpa">
+              <PropertyRef Name="SEMESTER_NO" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="fk1_reg_no">
+          <End Type="Teacher_Evaluation_SystemModel.STMTR" Role="STMTR" Multiplicity="1" />
+          <End Type="Teacher_Evaluation_SystemModel.Accgpa" Role="Accgpa" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="STMTR">
+              <PropertyRef Name="Reg_No" />
+            </Principal>
+            <Dependent Role="Accgpa">
+              <PropertyRef Name="REG_NO" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
       </Schema>
     </edmx:ConceptualModels>
     <!-- C-S mapping content -->
@@ -1225,6 +1341,28 @@ warning 6002: The table/view 'Teacher_Evaluation_System.dbo.v_TeacherAttendance_
                 <ScalarProperty Name="USERID" ColumnName="USERID" />
                 <ScalarProperty Name="Emp_email" ColumnName="Emp_email" />
                 <ScalarProperty Name="Emp_no" ColumnName="Emp_no" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="Accgpas">
+            <EntityTypeMapping TypeName="Teacher_Evaluation_SystemModel.Accgpa">
+              <MappingFragment StoreEntitySet="Accgpa">
+                <ScalarProperty Name="dropCount" ColumnName="dropCount" />
+                <ScalarProperty Name="SemC" ColumnName="SemC" />
+                <ScalarProperty Name="SEM_STATUS" ColumnName="SEM_STATUS" />
+                <ScalarProperty Name="SECTION" ColumnName="SECTION" />
+                <ScalarProperty Name="USER_ID" ColumnName="USER_ID" />
+                <ScalarProperty Name="CGPA" ColumnName="CGPA" />
+                <ScalarProperty Name="CR_TOTAL" ColumnName="CR_TOTAL" />
+                <ScalarProperty Name="CR_CURR_SEM" ColumnName="CR_CURR_SEM" />
+                <ScalarProperty Name="CR_PREV" ColumnName="CR_PREV" />
+                <ScalarProperty Name="Q_TOTAL" ColumnName="Q_TOTAL" />
+                <ScalarProperty Name="Q_CURR_SEM" ColumnName="Q_CURR_SEM" />
+                <ScalarProperty Name="Q_PREV" ColumnName="Q_PREV" />
+                <ScalarProperty Name="SYN_INT" ColumnName="SYN_INT" />
+                <ScalarProperty Name="CHAR_WORK" ColumnName="CHAR_WORK" />
+                <ScalarProperty Name="SEMESTER_NO" ColumnName="SEMESTER_NO" />
+                <ScalarProperty Name="REG_NO" ColumnName="REG_NO" />
               </MappingFragment>
             </EntityTypeMapping>
           </EntitySetMapping>

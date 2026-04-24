@@ -2,9 +2,13 @@
 using FYP2.Models;
 using System;
 using System.Collections.Generic;
+using System.Configuration;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Net.Mail;
+using System.Text;
 using System.Web.Http;
 using static System.Collections.Specialized.BitVector32;
 
@@ -208,6 +212,36 @@ namespace FYP2.Controllers
             }
         }
         [HttpGet]
+        public HttpResponseMessage getConfidentialStudent(string AridNo)
+        {
+            try
+            {
+                // Removed SEM_STATUS condition
+                var studentData = (from s in db.STMTRs
+                                   join a in db.Accgpas on s.Reg_No.Trim() equals a.REG_NO.Trim()
+                                   where s.Reg_No.Trim() == AridNo.Trim()
+                                   && a.CGPA >= 3.70m
+                                   select new
+                                   {
+                                       s.Reg_No,
+                                       Name = s.St_firstname + " " + s.St_lastname,
+                                       a.CGPA,
+                                       s.Section
+                                   }).FirstOrDefault();
+
+                if (studentData == null)
+                {
+                    return Request.CreateErrorResponse(HttpStatusCode.NotFound, "Criteria not met.");
+                }
+
+                return Request.CreateResponse(HttpStatusCode.OK, studentData);
+            }
+            catch (Exception ex)
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+            }
+        }
+        [HttpGet]
      
         public IHttpActionResult GetSupervisorName(string AridNo)
         {
@@ -247,6 +281,143 @@ namespace FYP2.Controllers
             catch (Exception ex)
             {
                 return Request.CreateErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+            }
+        }
+
+        [HttpPost]
+        [Route("api/student/submit-confidential")]
+        public IHttpActionResult SubmitConfidential([FromBody] EvaluationRequest request)
+        {
+            if (request == null || request.Answers == null || request.Answers.Count == 0)
+            {
+                return BadRequest("Request body with at least one answer is required.");
+            }
+
+            try
+            {
+                string csvContent = ConvertEvaluationRequestToCsv(request, out int rowCount);
+                SendConfidentialCsvEmail(csvContent, rowCount);
+
+                return Ok(new
+                {
+                    message = "Confidential data submitted successfully.",
+                    rows = rowCount
+                });
+            }
+            catch (Exception ex)
+            {
+                return InternalServerError(ex);
+            }
+        }
+
+        private string ConvertEvaluationRequestToCsv(EvaluationRequest request, out int rowCount)
+        {
+            var regNo = request.Reg_no?.Trim();
+            var empNo = request.Emp_no?.Trim();
+            var courseNo = request.Course_no?.Trim();
+
+            var student = db.STMTRs.FirstOrDefault(s => s.Reg_No.Trim() == regNo);
+            var teacher = db.EMPMTRs.FirstOrDefault(t => t.Emp_no.Trim() == empNo);
+            var course = db.CRSMTRs.FirstOrDefault(c => c.Course_no.Trim() == courseNo);
+
+            var questionIds = request.Answers.Select(a => a.Question_ID).Distinct().ToList();
+            var questionMap = db.Question_Answer
+                .Where(q => questionIds.Contains(q.Question_ID))
+                .ToDictionary(q => q.Question_ID, q => q.Question);
+
+            var studentName = student == null
+                ? string.Empty
+                : (student.St_firstname + " " + (student.St_middlename ?? "") + " " + student.St_lastname).Replace("  ", " ").Trim();
+
+            var teacherName = teacher?.Name?.Trim() ?? string.Empty;
+            var courseTitle = course?.Course_desc?.Trim() ?? string.Empty;
+
+            var csv = new StringBuilder();
+            csv.AppendLine("Emp_no,Reg_no,StudentName,TeacherName,Course_no,CourseTitle,Discipline,Question,Rating");
+
+            foreach (var answer in request.Answers)
+            {
+                string questionText;
+                if (!questionMap.TryGetValue(answer.Question_ID, out questionText))
+                {
+                    questionText = "Question not found (ID: " + answer.Question_ID + ")";
+                }
+
+                csv.AppendLine(string.Join(",",
+                    EscapeCsvField(empNo),
+                    EscapeCsvField(regNo),
+                    EscapeCsvField(studentName),
+                    EscapeCsvField(teacherName),
+                    EscapeCsvField(courseNo),
+                    EscapeCsvField(courseTitle),
+                    EscapeCsvField(request.Discipline?.Trim()),
+                    EscapeCsvField(questionText),
+                    EscapeCsvField(answer.Rating.ToString())
+                ));
+            }
+
+            rowCount = request.Answers.Count;
+            return csv.ToString();
+        }
+
+        private static string EscapeCsvField(string value)
+        {
+            var safeValue = value ?? string.Empty;
+            bool mustQuote = safeValue.Contains(",") || safeValue.Contains("\"") || safeValue.Contains("\n") || safeValue.Contains("\r");
+
+            if (safeValue.Contains("\""))
+            {
+                safeValue = safeValue.Replace("\"", "\"\"");
+            }
+
+            return mustQuote ? "\"" + safeValue + "\"" : safeValue;
+        }
+
+        private void SendConfidentialCsvEmail(string csvContent, int rowCount)
+        {
+            string smtpHost = ConfigurationManager.AppSettings["ConfidentialSmtpHost"];
+            string smtpPortRaw = ConfigurationManager.AppSettings["ConfidentialSmtpPort"];
+            string enableSslRaw = ConfigurationManager.AppSettings["ConfidentialSmtpEnableSsl"];
+            string smtpUser = ConfigurationManager.AppSettings["ConfidentialSmtpUser"];
+            string smtpPass = ConfigurationManager.AppSettings["ConfidentialSmtpPassword"];
+            string fromEmail = ConfigurationManager.AppSettings["ConfidentialFromEmail"];
+
+            if (string.IsNullOrWhiteSpace(smtpHost) ||
+                string.IsNullOrWhiteSpace(smtpPortRaw) ||
+                string.IsNullOrWhiteSpace(smtpUser) ||
+                string.IsNullOrWhiteSpace(smtpPass) ||
+                string.IsNullOrWhiteSpace(fromEmail))
+            {
+                throw new InvalidOperationException("SMTP settings are missing in Web.config appSettings.");
+            }
+
+            int smtpPort;
+            if (!int.TryParse(smtpPortRaw, out smtpPort))
+            {
+                throw new InvalidOperationException("Invalid ConfidentialSmtpPort value in Web.config.");
+            }
+
+            bool enableSsl = true;
+            bool.TryParse(enableSslRaw, out enableSsl);
+
+            using (var message = new MailMessage())
+            {
+                message.From = new MailAddress(fromEmail);
+                message.To.Add("abu.bakar@galixo.ai");
+                message.Subject = "Confidential Submission CSV";
+                message.Body = "Attached is the confidential submission CSV file.\nRows: " + rowCount;
+
+                byte[] bytes = Encoding.UTF8.GetBytes(csvContent);
+                var stream = new MemoryStream(bytes);
+                var attachment = new Attachment(stream, "confidential-submission.csv", "text/csv");
+                message.Attachments.Add(attachment);
+
+                using (var smtp = new SmtpClient(smtpHost, smtpPort))
+                {
+                    smtp.EnableSsl = enableSsl;
+                    smtp.Credentials = new NetworkCredential(smtpUser, smtpPass);
+                    smtp.Send(message);
+                }
             }
         }
     }

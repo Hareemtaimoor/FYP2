@@ -42,5 +42,6 @@ namespace FYP2.Models
         public virtual DbSet<v_FullClassReport_Course> v_FullClassReport_Course { get; set; }
         public virtual DbSet<v_TeacherAttendance_EMPMTR> v_TeacherAttendance_EMPMTR { get; set; }
         public virtual DbSet<EMPMTR> EMPMTRs { get; set; }
+        public virtual DbSet<Accgpa> Accgpas { get; set; }
     }
 }

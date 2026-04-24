@@ -18,6 +18,7 @@ namespace FYP2.Models
         public SEMMTR()
         {
             this.Crsdtls = new HashSet<Crsdtl>();
+            this.Accgpas = new HashSet<Accgpa>();
         }
     
         public string Semester_no { get; set; }
@@ -27,5 +28,7 @@ namespace FYP2.Models
     
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
         public virtual ICollection<Crsdtl> Crsdtls { get; set; }
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
+        public virtual ICollection<Accgpa> Accgpas { get; set; }
     }
 }
