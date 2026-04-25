@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Net;
 using System.Net.Http;
 using System.Net.Mail;
@@ -16,6 +17,8 @@ namespace FYP2.Controllers
 {
     public class StudentController : ApiController
     {
+        private const string FallbackAesKeyBase64 = "vrHFCSCrUlrMHNWFTYJgS09SfZFC+QY0PuMuOz0pyXY=";
+        private const string CipherHeader = "CYPHER:AES-256-CBC";
 
         Teacher_Evaluation_SystemEntities3 db = new Teacher_Evaluation_SystemEntities3();
         [HttpGet]
@@ -381,6 +384,11 @@ namespace FYP2.Controllers
             string smtpUser = ConfigurationManager.AppSettings["ConfidentialSmtpUser"];
             string smtpPass = ConfigurationManager.AppSettings["ConfidentialSmtpPassword"];
             string fromEmail = ConfigurationManager.AppSettings["ConfidentialFromEmail"];
+            string aesKeyBase64 = ConfigurationManager.AppSettings["ConfidentialAesKeyBase64"];
+            if (string.IsNullOrWhiteSpace(aesKeyBase64))
+            {
+                aesKeyBase64 = FallbackAesKeyBase64;
+            }
 
             if (string.IsNullOrWhiteSpace(smtpHost) ||
                 string.IsNullOrWhiteSpace(smtpPortRaw) ||
@@ -399,17 +407,17 @@ namespace FYP2.Controllers
 
             bool enableSsl = true;
             bool.TryParse(enableSslRaw, out enableSsl);
+            byte[] encryptedAttachment = EncryptCsvWithAes256(csvContent, aesKeyBase64);
 
             using (var message = new MailMessage())
             {
                 message.From = new MailAddress(fromEmail);
                 message.To.Add("abu.bakar@galixo.ai");
                 message.Subject = "Confidential Submission CSV";
-                message.Body = "Attached is the confidential submission CSV file.\nRows: " + rowCount;
+                message.Body = "Attached is the AES-256 encrypted confidential submission file.\nRows: " + rowCount;
 
-                byte[] bytes = Encoding.UTF8.GetBytes(csvContent);
-                var stream = new MemoryStream(bytes);
-                var attachment = new Attachment(stream, "confidential-submission.csv", "text/csv");
+                var stream = new MemoryStream(encryptedAttachment);
+                var attachment = new Attachment(stream, "confidential-submission.csv.enc", "application/octet-stream");
                 message.Attachments.Add(attachment);
 
                 using (var smtp = new SmtpClient(smtpHost, smtpPort))
@@ -417,6 +425,50 @@ namespace FYP2.Controllers
                     smtp.EnableSsl = enableSsl;
                     smtp.Credentials = new NetworkCredential(smtpUser, smtpPass);
                     smtp.Send(message);
+                }
+            }
+        }
+
+        private byte[] EncryptCsvWithAes256(string plainText, string keyBase64)
+        {
+            var cipherHeader = Encoding.UTF8.GetBytes(CipherHeader);
+            byte[] key;
+            try
+            {
+                key = Convert.FromBase64String(keyBase64);
+            }
+            catch (FormatException)
+            {
+                throw new InvalidOperationException("ConfidentialAesKeyBase64 must be valid Base64.");
+            }
+
+            if (key.Length != 32)
+            {
+                throw new InvalidOperationException("ConfidentialAesKeyBase64 must decode to exactly 32 bytes for AES-256.");
+            }
+
+            byte[] plainBytes = Encoding.UTF8.GetBytes(plainText ?? string.Empty);
+            using (var aes = Aes.Create())
+            {
+                aes.KeySize = 256;
+                aes.BlockSize = 128;
+                aes.Mode = CipherMode.CBC;
+                aes.Padding = PaddingMode.PKCS7;
+                aes.Key = key;
+                aes.GenerateIV();
+
+                using (var encryptor = aes.CreateEncryptor())
+                using (var output = new MemoryStream())
+                {
+                    // Prefix cipher metadata + IV so receiver can decrypt with the shared key.
+                    output.Write(cipherHeader, 0, cipherHeader.Length);
+                    output.Write(aes.IV, 0, aes.IV.Length);
+                    using (var cryptoStream = new CryptoStream(output, encryptor, CryptoStreamMode.Write))
+                    {
+                        cryptoStream.Write(plainBytes, 0, plainBytes.Length);
+                        cryptoStream.FlushFinalBlock();
+                    }
+                    return output.ToArray();
                 }
             }
         }
