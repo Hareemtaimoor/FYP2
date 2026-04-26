@@ -17,7 +17,9 @@ namespace FYP2.Controllers
     {
         private const string FallbackAesKeyBase64 = "vrHFCSCrUlrMHNWFTYJgS09SfZFC+QY0PuMuOz0pyXY=";
         Teacher_Evaluation_SystemEntities3 db = new Teacher_Evaluation_SystemEntities3();
+        testingEntities1 dbTest = new testingEntities1();     
 
+       
         // 1. Get All Sessions (Dropdown)
         // URL: /api/Director/GetAllSessions
         [HttpGet]
@@ -169,6 +171,57 @@ namespace FYP2.Controllers
                 return Request.CreateErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
             }
         }
+
+        // 5. Get Average Ratings for all teachers in a specific session
+        // URL: /api/Director/GetTeacherAverageRatings?session=2022FM
+        [HttpGet]
+        public HttpResponseMessage GetTeacherAverageRatings(string session)
+        {
+            try
+            {
+                var year = session?.Substring(0, 4); // 🔥 extract year
+
+                var ratings = db.Evals
+                    .Where(ev => ev.Answer_Marks != null)
+                    .Join(db.STMTRs,
+                        ev => ev.Reg_No,
+                        st => st.Reg_No,
+                        (ev, st) => new { ev, st })
+                    // 🔥 FIX HERE
+                    .Where(x => x.st.SOS.Contains(year))
+                    .GroupBy(x => x.ev.Emp_no)
+                    .Select(g => new
+                    {
+                        TeacherID = g.Key,
+                        AverageRating = g.Average(x => (double?)x.ev.Answer_Marks) ?? 0
+                    })
+                    .ToList();
+
+                var result = ratings.Select(r => new
+                {
+                    r.TeacherID,
+                    AverageRating = Math.Round(r.AverageRating, 1)
+                }).ToList();
+
+                return Request.CreateResponse(HttpStatusCode.OK, result);
+            }
+            catch (Exception ex)
+            {
+                return Request.CreateErrorResponse(
+                    HttpStatusCode.InternalServerError,
+                    ex.InnerException?.Message ?? ex.Message
+                );
+            }
+        }
+    
+
+    public class GraphRequest
+    {
+        public List<string> TeacherIds { get; set; }
+        public List<int> QuestionIds { get; set; }
+        public string CourseId { get; set; }
+        public string Session { get; set; }
+    }
 
         [HttpPost]
         [Route("api/director/import-confidential")]

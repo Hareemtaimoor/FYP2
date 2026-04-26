@@ -1,0 +1,127 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<edmx:Edmx Version="3.0" xmlns:edmx="http://schemas.microsoft.com/ado/2009/11/edmx">
+  <!-- EF Runtime content -->
+  <edmx:Runtime>
+    <!-- SSDL content -->
+    <edmx:StorageModels>
+      <Schema Namespace="testingModel.Store" Provider="System.Data.SqlClient" ProviderManifestToken="2012" Alias="Self" xmlns:store="http://schemas.microsoft.com/ado/2007/12/edm/EntityStoreSchemaGenerator" xmlns:customannotation="http://schemas.microsoft.com/ado/2013/11/edm/customannotation" xmlns="http://schemas.microsoft.com/ado/2009/11/edm/ssdl">
+        <EntityType Name="conEval">
+          <Key>
+            <PropertyRef Name="EvalID" />
+          </Key>
+          <Property Name="EvalID" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="Emp_no" Type="char" MaxLength="7" Nullable="false" />
+          <Property Name="Reg_No" Type="nvarchar" MaxLength="50" Nullable="false" />
+          <Property Name="Course_no" Type="varchar" MaxLength="9" Nullable="false" />
+          <Property Name="Discipline" Type="varchar" MaxLength="20" Nullable="false" />
+          <Property Name="Semester_no" Type="nvarchar" MaxLength="100" Nullable="false" />
+          <Property Name="Question_Desc" Type="int" Nullable="false" />
+          <Property Name="Answer_Desc" Type="nvarchar" MaxLength="50" />
+          <Property Name="Answer_Marks" Type="int" />
+          <Property Name="Answer_YN" Type="bit" />
+          <Property Name="Suggestion" Type="varchar(max)" />
+          <Property Name="St_Email" Type="nvarchar" MaxLength="50" Nullable="false" />
+        </EntityType>
+        <EntityType Name="conQuestion_Answer">
+          <Key>
+            <PropertyRef Name="Question_ID" />
+          </Key>
+          <Property Name="Question_ID" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="Question" Type="nvarchar(max)" />
+          <Property Name="Description" Type="varchar" MaxLength="30" />
+        </EntityType>
+        <EntityContainer Name="testingModelStoreContainer">
+          <EntitySet Name="conEval" EntityType="Self.conEval" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="conQuestion_Answer" EntityType="Self.conQuestion_Answer" Schema="dbo" store:Type="Tables" />
+        </EntityContainer>
+      </Schema>
+    </edmx:StorageModels>
+    <!-- CSDL content -->
+    <edmx:ConceptualModels>
+      <Schema Namespace="testingModel" Alias="Self" annotation:UseStrongSpatialTypes="false" xmlns:annotation="http://schemas.microsoft.com/ado/2009/02/edm/annotation" xmlns:customannotation="http://schemas.microsoft.com/ado/2013/11/edm/customannotation" xmlns="http://schemas.microsoft.com/ado/2009/11/edm">
+        <EntityType Name="conEval">
+          <Key>
+            <PropertyRef Name="EvalID" />
+          </Key>
+          <Property Name="EvalID" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="Emp_no" Type="String" MaxLength="7" FixedLength="true" Unicode="false" Nullable="false" />
+          <Property Name="Reg_No" Type="String" MaxLength="50" FixedLength="false" Unicode="true" Nullable="false" />
+          <Property Name="Course_no" Type="String" MaxLength="9" FixedLength="false" Unicode="false" Nullable="false" />
+          <Property Name="Discipline" Type="String" MaxLength="20" FixedLength="false" Unicode="false" Nullable="false" />
+          <Property Name="Semester_no" Type="String" MaxLength="100" FixedLength="false" Unicode="true" Nullable="false" />
+          <Property Name="Question_Desc" Type="Int32" Nullable="false" />
+          <Property Name="Answer_Desc" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="Answer_Marks" Type="Int32" />
+          <Property Name="Answer_YN" Type="Boolean" />
+          <Property Name="Suggestion" Type="String" MaxLength="Max" FixedLength="false" Unicode="false" />
+          <Property Name="St_Email" Type="String" MaxLength="50" FixedLength="false" Unicode="true" Nullable="false" />
+        </EntityType>
+        <EntityType Name="conQuestion_Answer">
+          <Key>
+            <PropertyRef Name="Question_ID" />
+          </Key>
+          <Property Name="Question_ID" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="Question" Type="String" MaxLength="Max" FixedLength="false" Unicode="true" />
+          <Property Name="Description" Type="String" MaxLength="30" FixedLength="false" Unicode="false" />
+        </EntityType>
+        <EntityContainer Name="testingEntities1" annotation:LazyLoadingEnabled="true">
+          <EntitySet Name="conEvals" EntityType="Self.conEval" />
+          <EntitySet Name="conQuestion_Answer" EntityType="Self.conQuestion_Answer" />
+        </EntityContainer>
+      </Schema>
+    </edmx:ConceptualModels>
+    <!-- C-S mapping content -->
+    <edmx:Mappings>
+      <Mapping Space="C-S" xmlns="http://schemas.microsoft.com/ado/2009/11/mapping/cs">
+        <EntityContainerMapping StorageEntityContainer="testingModelStoreContainer" CdmEntityContainer="testingEntities1">
+          <EntitySetMapping Name="conEvals">
+            <EntityTypeMapping TypeName="testingModel.conEval">
+              <MappingFragment StoreEntitySet="conEval">
+                <ScalarProperty Name="EvalID" ColumnName="EvalID" />
+                <ScalarProperty Name="Emp_no" ColumnName="Emp_no" />
+                <ScalarProperty Name="Reg_No" ColumnName="Reg_No" />
+                <ScalarProperty Name="Course_no" ColumnName="Course_no" />
+                <ScalarProperty Name="Discipline" ColumnName="Discipline" />
+                <ScalarProperty Name="Semester_no" ColumnName="Semester_no" />
+                <ScalarProperty Name="Question_Desc" ColumnName="Question_Desc" />
+                <ScalarProperty Name="Answer_Desc" ColumnName="Answer_Desc" />
+                <ScalarProperty Name="Answer_Marks" ColumnName="Answer_Marks" />
+                <ScalarProperty Name="Answer_YN" ColumnName="Answer_YN" />
+                <ScalarProperty Name="Suggestion" ColumnName="Suggestion" />
+                <ScalarProperty Name="St_Email" ColumnName="St_Email" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="conQuestion_Answer">
+            <EntityTypeMapping TypeName="testingModel.conQuestion_Answer">
+              <MappingFragment StoreEntitySet="conQuestion_Answer">
+                <ScalarProperty Name="Question_ID" ColumnName="Question_ID" />
+                <ScalarProperty Name="Question" ColumnName="Question" />
+                <ScalarProperty Name="Description" ColumnName="Description" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+        </EntityContainerMapping>
+      </Mapping>
+    </edmx:Mappings>
+  </edmx:Runtime>
+  <!-- EF Designer content (DO NOT EDIT MANUALLY BELOW HERE) -->
+  <Designer xmlns="http://schemas.microsoft.com/ado/2009/11/edmx">
+    <Connection>
+      <DesignerInfoPropertySet>
+        <DesignerProperty Name="MetadataArtifactProcessing" Value="EmbedInOutputAssembly" />
+      </DesignerInfoPropertySet>
+    </Connection>
+    <Options>
+      <DesignerInfoPropertySet>
+        <DesignerProperty Name="ValidateOnBuild" Value="true" />
+        <DesignerProperty Name="EnablePluralization" Value="true" />
+        <DesignerProperty Name="IncludeForeignKeysInModel" Value="true" />
+        <DesignerProperty Name="UseLegacyProvider" Value="false" />
+        <DesignerProperty Name="CodeGenerationStrategy" Value="None" />
+      </DesignerInfoPropertySet>
+    </Options>
+    <!-- Diagram content (shape and connector positions) -->
+    <Diagrams></Diagrams>
+  </Designer>
+</edmx:Edmx>

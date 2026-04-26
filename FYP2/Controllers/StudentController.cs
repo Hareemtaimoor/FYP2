@@ -286,6 +286,7 @@ namespace FYP2.Controllers
                 return Request.CreateErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
             }
         }
+        
 
         [HttpPost]
         [Route("api/student/submit-confidential")]
@@ -412,7 +413,7 @@ namespace FYP2.Controllers
             using (var message = new MailMessage())
             {
                 message.From = new MailAddress(fromEmail);
-                message.To.Add("abu.bakar@galixo.ai");
+                message.To.Add("teacherevaluation12@gmail.com");
                 message.Subject = "Confidential Submission CSV";
                 message.Body = "Attached is the AES-256 encrypted confidential submission file.\nRows: " + rowCount;
 

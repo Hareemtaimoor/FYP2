@@ -202,6 +202,27 @@
     <Compile Include="Models\ClassReport.cs">
       <DependentUpon>Model1.tt</DependentUpon>
     </Compile>
+    <Compile Include="Models\conEval.cs">
+      <DependentUpon>confidential.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Models\confidential.Context.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>confidential.Context.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Models\confidential.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>confidential.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Models\confidential.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>confidential.edmx</DependentUpon>
+    </Compile>
+    <Compile Include="Models\conQuestion_Answer.cs">
+      <DependentUpon>confidential.tt</DependentUpon>
+    </Compile>
     <Compile Include="Models\Crsdtl.cs">
       <DependentUpon>Model1.tt</DependentUpon>
     </Compile>
@@ -281,6 +302,16 @@
     <Content Include="Content\bootstrap.rtl.min.css" />
     <Content Include="favicon.ico" />
     <Content Include="Global.asax" />
+    <Content Include="Models\confidential.Context.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <DependentUpon>confidential.edmx</DependentUpon>
+      <LastGenOutput>confidential.Context.cs</LastGenOutput>
+    </Content>
+    <Content Include="Models\confidential.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <DependentUpon>confidential.edmx</DependentUpon>
+      <LastGenOutput>confidential.cs</LastGenOutput>
+    </Content>
     <Content Include="Models\Model1.Context.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <DependentUpon>Model1.edmx</DependentUpon>
@@ -322,6 +353,13 @@
     </EntityDeploy>
     <Content Include="Models\Model1.edmx.diagram">
       <DependentUpon>Model1.edmx</DependentUpon>
+    </Content>
+    <EntityDeploy Include="Models\confidential.edmx">
+      <Generator>EntityModelCodeGenerator</Generator>
+      <LastGenOutput>confidential.Designer.cs</LastGenOutput>
+    </EntityDeploy>
+    <Content Include="Models\confidential.edmx.diagram">
+      <DependentUpon>confidential.edmx</DependentUpon>
     </Content>
     <None Include="Scripts\jquery-3.7.0.intellisense.js" />
     <Content Include="Scripts\jquery-3.7.0.js" />
