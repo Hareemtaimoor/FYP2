@@ -29,6 +29,7 @@
         <EntityTypeShape EntityType="Teacher_Evaluation_SystemModel.Accgpa" Width="1.5" PointX="6" PointY="15.5" />
         <AssociationConnector Association="Teacher_Evaluation_SystemModel.fk_semno1" />
         <AssociationConnector Association="Teacher_Evaluation_SystemModel.fk1_reg_no" />
+        <EntityTypeShape EntityType="Teacher_Evaluation_SystemModel.PeerEvaluation" Width="1.5" PointX="12.375" PointY="8.75" />
       </Diagram>
     </edmx:Diagrams>
   </edmx:Designer>

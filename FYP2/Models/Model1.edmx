@@ -191,6 +191,18 @@ warning 6002: The table/view 'Teacher_Evaluation_System.dbo.Log_In' does not hav
           <Property Name="VID" Type="nchar" MaxLength="200" />
           <Property Name="att" Type="char" MaxLength="1" />
         </EntityType>
+        <EntityType Name="PeerEvaluation">
+          <Key>
+            <PropertyRef Name="EvalID" />
+          </Key>
+          <Property Name="EvalID" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="Evaluator_Emp_no" Type="char" MaxLength="7" Nullable="false" />
+          <Property Name="Target_Emp_no" Type="char" MaxLength="7" Nullable="false" />
+          <Property Name="Question_Desc" Type="int" Nullable="false" />
+          <Property Name="Answer_Desc" Type="nvarchar" MaxLength="50" />
+          <Property Name="Answer_Marks" Type="int" />
+          <Property Name="Remarks" Type="varchar(max)" />
+        </EntityType>
         <EntityType Name="Projects">
           <Key>
             <PropertyRef Name="reg_no" />
@@ -440,6 +452,7 @@ warning 6002: The table/view 'Teacher_Evaluation_System.dbo.v_TeacherAttendance_
           <EntitySet Name="EMPMTR" EntityType="Self.EMPMTR" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="EMPMTR_0" EntityType="Self.EMPMTR_0" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="Eval" EntityType="Self.Eval" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="PeerEvaluation" EntityType="Self.PeerEvaluation" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="Projects" EntityType="Self.Projects" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="Question_Answer" EntityType="Self.Question_Answer" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="SEMMTR" EntityType="Self.SEMMTR" Schema="dbo" store:Type="Tables" />
@@ -827,6 +840,7 @@ warning 6002: The table/view 'Teacher_Evaluation_System.dbo.v_TeacherAttendance_
             <End Role="STMTR" EntitySet="STMTRs" />
             <End Role="Accgpa" EntitySet="Accgpas" />
           </AssociationSet>
+          <EntitySet Name="PeerEvaluations" EntityType="Teacher_Evaluation_SystemModel.PeerEvaluation" />
         </EntityContainer>
         <EntityType Name="Eval">
           <Key>
@@ -1035,6 +1049,18 @@ warning 6002: The table/view 'Teacher_Evaluation_System.dbo.v_TeacherAttendance_
             </Dependent>
           </ReferentialConstraint>
         </Association>
+        <EntityType Name="PeerEvaluation">
+          <Key>
+            <PropertyRef Name="EvalID" />
+          </Key>
+          <Property Name="EvalID" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="Evaluator_Emp_no" Type="String" Nullable="false" MaxLength="7" FixedLength="true" Unicode="false" />
+          <Property Name="Target_Emp_no" Type="String" Nullable="false" MaxLength="7" FixedLength="true" Unicode="false" />
+          <Property Name="Question_Desc" Type="Int32" Nullable="false" />
+          <Property Name="Answer_Desc" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="Answer_Marks" Type="Int32" />
+          <Property Name="Remarks" Type="String" MaxLength="Max" FixedLength="false" Unicode="false" />
+        </EntityType>
       </Schema>
     </edmx:ConceptualModels>
     <!-- C-S mapping content -->
@@ -1363,6 +1389,19 @@ warning 6002: The table/view 'Teacher_Evaluation_System.dbo.v_TeacherAttendance_
                 <ScalarProperty Name="CHAR_WORK" ColumnName="CHAR_WORK" />
                 <ScalarProperty Name="SEMESTER_NO" ColumnName="SEMESTER_NO" />
                 <ScalarProperty Name="REG_NO" ColumnName="REG_NO" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="PeerEvaluations">
+            <EntityTypeMapping TypeName="Teacher_Evaluation_SystemModel.PeerEvaluation">
+              <MappingFragment StoreEntitySet="PeerEvaluation">
+                <ScalarProperty Name="Remarks" ColumnName="Remarks" />
+                <ScalarProperty Name="Answer_Marks" ColumnName="Answer_Marks" />
+                <ScalarProperty Name="Answer_Desc" ColumnName="Answer_Desc" />
+                <ScalarProperty Name="Question_Desc" ColumnName="Question_Desc" />
+                <ScalarProperty Name="Target_Emp_no" ColumnName="Target_Emp_no" />
+                <ScalarProperty Name="Evaluator_Emp_no" ColumnName="Evaluator_Emp_no" />
+                <ScalarProperty Name="EvalID" ColumnName="EvalID" />
               </MappingFragment>
             </EntityTypeMapping>
           </EntitySetMapping>
