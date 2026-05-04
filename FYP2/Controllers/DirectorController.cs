@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using FYP2.Models;
 using System.Configuration;
+using System.Data.Entity;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -16,10 +17,9 @@ namespace FYP2.Controllers
     public class DirectorController : ApiController
     {
         private const string FallbackAesKeyBase64 = "vrHFCSCrUlrMHNWFTYJgS09SfZFC+QY0PuMuOz0pyXY=";
-        Teacher_Evaluation_SystemEntities3 db = new Teacher_Evaluation_SystemEntities3();
-        testingEntities1 dbTest = new testingEntities1();     
+        private readonly Teacher_Evaluation_SystemEntities3 db = new Teacher_Evaluation_SystemEntities3();
+        private readonly testingEntities1 dbTest = new testingEntities1();
 
-       
         // 1. Get All Sessions (Dropdown)
         // URL: /api/Director/GetAllSessions
         [HttpGet]
@@ -27,14 +27,13 @@ namespace FYP2.Controllers
         {
             try
             {
-                // Adding .AsNoTracking() makes it faster for read-only lists
                 var sessions = db.ALLOCATEs
-                                 .AsNoTracking()
-                                 .Select(a => a.SOS)
-                                 .Distinct()
-                                 .Where(s => s != null) // Filter out nulls early
-                                 .OrderByDescending(s => s)
-                                 .ToList();
+                    .AsNoTracking()
+                    .Select(a => a.SOS)
+                    .Distinct()
+                    .Where(s => s != null)
+                    .OrderByDescending(s => s)
+                    .ToList();
 
                 return Request.CreateResponse(HttpStatusCode.OK, sessions);
             }
@@ -62,8 +61,8 @@ namespace FYP2.Controllers
                                     TeacherName = t.Name,
                                     Designation = t.Designation
                                 })
-                                .Distinct()
-                                .ToList();
+                    .Distinct()
+                    .ToList();
 
                 if (!teachers.Any())
                     return Request.CreateResponse(HttpStatusCode.NotFound, "No teachers found.");
@@ -93,8 +92,8 @@ namespace FYP2.Controllers
                                    CourseNo = c.Course_no,
                                    CourseName = c.Course_desc
                                })
-                               .Distinct()
-                               .ToList();
+                    .Distinct()
+                    .ToList();
 
                 if (!courses.Any())
                     return Request.CreateResponse(HttpStatusCode.NotFound, "No courses found.");
@@ -121,11 +120,15 @@ namespace FYP2.Controllers
                                 join t in db.EMPMTRs on a.EMP_NO equals t.Emp_no
                                 where a.SOS == sTrim && a.COURSE_NO == cTrim
                                 select new { TeacherID = t.Emp_no, TeacherName = t.Name })
-                                .Distinct().ToList();
+                    .Distinct()
+                    .ToList();
 
                 return Request.CreateResponse(HttpStatusCode.OK, teachers);
             }
-            catch (Exception ex) { return Request.CreateErrorResponse(HttpStatusCode.InternalServerError, ex.Message); }
+            catch (Exception ex)
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+            }
         }
 
         [HttpGet]
@@ -136,7 +139,10 @@ namespace FYP2.Controllers
                 var questions = db.Question_Answer.Select(q => new { q.Question_ID, q.Question }).ToList();
                 return Request.CreateResponse(HttpStatusCode.OK, questions);
             }
-            catch (Exception ex) { return Request.CreateErrorResponse(HttpStatusCode.InternalServerError, ex.Message); }
+            catch (Exception ex)
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+            }
         }
 
         [HttpPost]
@@ -144,23 +150,20 @@ namespace FYP2.Controllers
         {
             try
             {
-                // Trim inputs to avoid whitespace mismatches
                 var sessionTrim = req.Session?.Trim();
                 var courseTrim = req.CourseId?.Trim();
 
                 var queryData = (from ev in db.Evals
-                                     // Joining with STMTR to ensure we only get evaluations from students in the specific session
                                  join st in db.STMTRs on ev.Reg_No equals st.Reg_No
                                  where req.TeacherIds.Contains(ev.Emp_no) &&
                                        ev.Course_no == courseTrim &&
-                                       st.SOS == sessionTrim && // Matches '2017FM', '2017SM' etc from your image
+                                       st.SOS == sessionTrim &&
                                        req.QuestionIds.Contains((int)ev.Question_Desc)
                                  group ev by new { ev.Emp_no, ev.Question_Desc } into g
                                  select new
                                  {
-                                     TeacherID = g.Key.Emp_no, // e.g., "BIIT184"
+                                     TeacherID = g.Key.Emp_no,
                                      QuestionNo = g.Key.Question_Desc,
-                                     // Average of Answer_Marks (the 1-5 values)
                                      AverageRating = g.Average(x => (double?)x.Answer_Marks) ?? 0
                                  }).ToList();
 
@@ -179,7 +182,7 @@ namespace FYP2.Controllers
         {
             try
             {
-                var year = session?.Substring(0, 4); // 🔥 extract year
+                var year = session?.Substring(0, 4);
 
                 var ratings = db.Evals
                     .Where(ev => ev.Answer_Marks != null)
@@ -187,7 +190,6 @@ namespace FYP2.Controllers
                         ev => ev.Reg_No,
                         st => st.Reg_No,
                         (ev, st) => new { ev, st })
-                    // 🔥 FIX HERE
                     .Where(x => x.st.SOS.Contains(year))
                     .GroupBy(x => x.ev.Emp_no)
                     .Select(g => new
@@ -213,15 +215,6 @@ namespace FYP2.Controllers
                 );
             }
         }
-    
-
-    public class GraphRequest
-    {
-        public List<string> TeacherIds { get; set; }
-        public List<int> QuestionIds { get; set; }
-        public string CourseId { get; set; }
-        public string Session { get; set; }
-    }
 
         [HttpPost]
         [Route("api/director/import-confidential")]
@@ -266,8 +259,7 @@ namespace FYP2.Controllers
 
                 foreach (var row in importedRows)
                 {
-                    int questionId;
-                    if (!questionMap.TryGetValue((row.Question ?? string.Empty).Trim(), out questionId))
+                    if (!questionMap.TryGetValue((row.Question ?? string.Empty).Trim(), out int questionId))
                     {
                         continue;
                     }
@@ -303,6 +295,176 @@ namespace FYP2.Controllers
             catch (Exception ex)
             {
                 return InternalServerError(ex);
+            }
+        }
+
+        [HttpGet]
+        [Route("api/Director/GetActiveQuestions")]
+        public HttpResponseMessage GetActiveQuestions()
+        {
+            try
+            {
+                var questions = db.Question_Answer
+                    .Where(q => q.IsActive == true || q.IsActive == null)
+                    .Select(q => new
+                    {
+                        Question_ID = q.Question_ID,
+                        Question = q.Question,
+                        Type = q.Description
+                    }).ToList();
+
+                return Request.CreateResponse(HttpStatusCode.OK, questions);
+            }
+            catch (Exception ex)
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+            }
+        }
+
+        [HttpPost]
+        [Route("api/Director/AddQuestion")]
+        public IHttpActionResult AddQuestion([FromBody] Question_Answer model)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(model.Question))
+                    return BadRequest("Question text is required.");
+
+                var newEntry = new Question_Answer
+                {
+                    Question = model.Question,
+                    Description = string.IsNullOrEmpty(model.Description) ? "T" : model.Description.ToUpper(),
+                    IsActive = true
+                };
+
+                db.Question_Answer.Add(newEntry);
+                db.SaveChanges();
+                return Ok("Question Added Successfully");
+            }
+            catch (Exception ex)
+            {
+                return InternalServerError(ex);
+            }
+        }
+
+        [HttpDelete]
+        [Route("api/Director/RemoveQuestion/{id}")]
+        public IHttpActionResult RemoveQuestion(int id)
+        {
+            try
+            {
+                var question = db.Question_Answer.Find(id);
+                if (question == null)
+                    return NotFound();
+
+                question.IsActive = false;
+                db.SaveChanges();
+                return Ok("Question removed successfully.");
+            }
+            catch (Exception ex)
+            {
+                return InternalServerError(ex);
+            }
+        }
+
+        [HttpPost]
+        [Route("api/Director/ModifyQuestion")]
+        public IHttpActionResult ModifyQuestion([FromBody] Question_Answer model)
+        {
+            try
+            {
+                var existingQuestion = db.Question_Answer.Find(model.Question_ID);
+
+                if (existingQuestion == null)
+                    return NotFound();
+
+                existingQuestion.Updated_Question = model.Question;
+                existingQuestion.IsActive = true;
+
+                db.SaveChanges();
+
+                return Ok("Updated ID " + model.Question_ID + " successfully in the same row.");
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        // URL: /api/Director/GetGenderFeedbackStats?session=2022FM&courseId=CS101&teacherId=BIIT184
+        [HttpGet]
+        [Route("api/Director/GetGenderFeedbackStats")]
+        public HttpResponseMessage GetGenderFeedbackStats(string session, string courseId = null, string teacherId = null)
+        {
+            try
+            {
+                var sessionTrim = session?.Trim();
+                var courseTrim = courseId?.Trim();
+                var teacherTrim = teacherId?.Trim();
+
+                if (string.IsNullOrEmpty(sessionTrim) || sessionTrim == "placeholder")
+                {
+                    return Request.CreateResponse(HttpStatusCode.BadRequest, "Valid session is required.");
+                }
+
+                var query = from ev in db.Evals
+                            join st in db.STMTRs on ev.Reg_No.Trim() equals st.Reg_No.Trim()
+                            where st.SOS.Trim() == sessionTrim
+                            select new
+                            {
+                                ev.Answer_Marks,
+                                Sex = st.Sex.Trim().ToUpper(),
+                                ev.Course_no,
+                                ev.Emp_no
+                            };
+
+                if (!string.IsNullOrEmpty(courseTrim))
+                {
+                    query = query.Where(x => x.Course_no.Trim() == courseTrim);
+                }
+
+                if (!string.IsNullOrEmpty(teacherTrim))
+                {
+                    query = query.Where(x => x.Emp_no.Trim() == teacherTrim);
+                }
+
+                var data = query.ToList();
+
+                if (!data.Any())
+                {
+                    return Request.CreateResponse(HttpStatusCode.OK, new
+                    {
+                        female = "0%",
+                        male = "0%",
+                        overall = "0%"
+                    });
+                }
+
+                double femaleAvg = data.Where(x => x.Sex == "F")
+                    .Select(x => (double)x.Answer_Marks)
+                    .DefaultIfEmpty(0)
+                    .Average();
+
+                double maleAvg = data.Where(x => x.Sex == "M")
+                    .Select(x => (double)x.Answer_Marks)
+                    .DefaultIfEmpty(0)
+                    .Average();
+
+                double overallAvg = data.Select(x => (double)x.Answer_Marks)
+                    .Average();
+
+                var result = new
+                {
+                    female = Math.Round((femaleAvg / 5) * 100, 1) + "%",
+                    male = Math.Round((maleAvg / 5) * 100, 1) + "%",
+                    overall = Math.Round((overallAvg / 5) * 100, 1) + "%"
+                };
+
+                return Request.CreateResponse(HttpStatusCode.OK, result);
+            }
+            catch (Exception ex)
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.InternalServerError, "Database Error: " + ex.Message);
             }
         }
 
@@ -408,7 +570,6 @@ namespace FYP2.Controllers
                 offsets.Add(headerWithCrLf.Length);
             }
 
-            // Backward compatibility: older files had no header and started directly with IV.
             offsets.Add(0);
             return offsets.Distinct().ToList();
         }
@@ -456,8 +617,7 @@ namespace FYP2.Controllers
                     continue;
                 }
 
-                int rating;
-                if (!int.TryParse(columns[8], out rating))
+                if (!int.TryParse(columns[8], out int rating))
                 {
                     continue;
                 }

@@ -17,5 +17,7 @@ namespace FYP2.Models
         public int Question_ID { get; set; }
         public string Question { get; set; }
         public string Description { get; set; }
+        public string Updated_Question { get; set; }
+        public Nullable<bool> IsActive { get; set; }
     }
 }

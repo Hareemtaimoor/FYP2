@@ -222,9 +222,11 @@ warning 6002: The table/view 'Teacher_Evaluation_System.dbo.Log_In' does not hav
           <Key>
             <PropertyRef Name="Question_ID" />
           </Key>
-          <Property Name="Question_ID" Type="int" Nullable="false" />
+          <Property Name="Question_ID" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
           <Property Name="Question" Type="nvarchar(max)" />
           <Property Name="Description" Type="varchar" MaxLength="30" />
+          <Property Name="Updated_Question" Type="nvarchar(max)" />
+          <Property Name="IsActive" Type="bit" />
         </EntityType>
         <EntityType Name="SEMMTR">
           <Key>
@@ -669,6 +671,8 @@ warning 6002: The table/view 'Teacher_Evaluation_System.dbo.v_TeacherAttendance_
           <Property Name="Question_ID" Type="Int32" Nullable="false" />
           <Property Name="Question" Type="String" MaxLength="Max" FixedLength="false" Unicode="true" />
           <Property Name="Description" Type="String" MaxLength="30" FixedLength="false" Unicode="false" />
+          <Property Name="Updated_Question" Type="String" MaxLength="Max" FixedLength="false" Unicode="true" />
+          <Property Name="IsActive" Type="Boolean" />
         </EntityType>
         <EntityType Name="SEMMTR">
           <Key>
@@ -1148,6 +1152,8 @@ warning 6002: The table/view 'Teacher_Evaluation_System.dbo.v_TeacherAttendance_
           <EntitySetMapping Name="Question_Answer">
             <EntityTypeMapping TypeName="Teacher_Evaluation_SystemModel.Question_Answer">
               <MappingFragment StoreEntitySet="Question_Answer">
+                <ScalarProperty Name="IsActive" ColumnName="IsActive" />
+                <ScalarProperty Name="Updated_Question" ColumnName="Updated_Question" />
                 <ScalarProperty Name="Question_ID" ColumnName="Question_ID" />
                 <ScalarProperty Name="Question" ColumnName="Question" />
                 <ScalarProperty Name="Description" ColumnName="Description" />
