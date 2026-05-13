@@ -25,7 +25,7 @@ namespace FYP2.Models
             throw new UnintentionalCodeFirstException();
         }
     
-        public virtual DbSet<ConfEval> ConfEvals { get; set; }
         public virtual DbSet<conQuestion_Answer> conQuestion_Answer { get; set; }
+        public virtual DbSet<ConfEval> ConfEvals { get; set; }
     }
 }

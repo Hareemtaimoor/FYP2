@@ -33,12 +33,7 @@ namespace FYP2.Controllers
                 using (var stream = new MemoryStream(fileBytes))
                 using (var reader = ExcelReaderFactory.CreateReader(stream))
                 {
-                    var result = reader.AsDataSet(new ExcelDataSetConfiguration()
-                    {
-                        ConfigureDataTable = (_) => new ExcelDataTableConfiguration() { UseHeaderRow = true }
-                    });
-
-                    DataTable dt = result.Tables[0];
+                    DataTable dt = ReadExcelDataTable(reader);
                     foreach (DataColumn column in dt.Columns)
                     {
                         column.ColumnName = column.ColumnName.Replace(" ", "").Trim();
@@ -96,12 +91,7 @@ namespace FYP2.Controllers
                 using (var stream = new MemoryStream(fileBytes))
                 using (var reader = ExcelReaderFactory.CreateReader(stream))
                 {
-                    var result = reader.AsDataSet(new ExcelDataSetConfiguration()
-                    {
-                        ConfigureDataTable = (_) => new ExcelDataTableConfiguration() { UseHeaderRow = true }
-                    });
-
-                    DataTable dt = result.Tables[0];
+                    DataTable dt = ReadExcelDataTable(reader);
 
                     foreach (DataColumn col in dt.Columns)
                     {
@@ -194,6 +184,54 @@ namespace FYP2.Controllers
                 var innerMsg = ex.InnerException?.InnerException?.Message ?? ex.InnerException?.Message ?? ex.Message;
                 return Request.CreateErrorResponse(HttpStatusCode.InternalServerError, "Database Sync Error: " + innerMsg);
             }
+        }
+
+        private DataTable ReadExcelDataTable(IExcelDataReader reader)
+        {
+            var table = new DataTable();
+
+            if (!reader.Read())
+            {
+                return table;
+            }
+
+            for (int i = 0; i < reader.FieldCount; i++)
+            {
+                var columnName = reader.GetValue(i)?.ToString()?.Trim();
+                if (string.IsNullOrWhiteSpace(columnName))
+                {
+                    columnName = "Column" + (i + 1);
+                }
+
+                table.Columns.Add(GetUniqueColumnName(table, columnName));
+            }
+
+            while (reader.Read())
+            {
+                var row = table.NewRow();
+                for (int i = 0; i < reader.FieldCount && i < table.Columns.Count; i++)
+                {
+                    row[i] = reader.GetValue(i) ?? DBNull.Value;
+                }
+
+                table.Rows.Add(row);
+            }
+
+            return table;
+        }
+
+        private string GetUniqueColumnName(DataTable table, string columnName)
+        {
+            var uniqueName = columnName;
+            int counter = 1;
+
+            while (table.Columns.Contains(uniqueName))
+            {
+                uniqueName = columnName + counter;
+                counter++;
+            }
+
+            return uniqueName;
         }
     }
 }

@@ -13,12 +13,12 @@
           <Property Name="Reg_No" Type="nvarchar" MaxLength="50" Nullable="false" />
           <Property Name="Course_no" Type="varchar" MaxLength="9" Nullable="false" />
           <Property Name="Discipline" Type="varchar" MaxLength="20" Nullable="false" />
-          <Property Name="Semester_no" Type="nvarchar" MaxLength="100" />
-          <Property Name="Question" Type="nvarchar(max)" />
+          <Property Name="Semester_no" Type="nvarchar" MaxLength="100" Nullable="false" />
+          <Property Name="Question" Type="varchar(max)" Nullable="false" />
           <Property Name="Question_Desc" Type="int" Nullable="false" />
-          <Property Name="Answer_Desc" Type="nvarchar" MaxLength="50" />
-          <Property Name="Answer_Marks" Type="int" Nullable="true" />
-          <Property Name="Comment" Type="varchar" MaxLength="100" />
+          <Property Name="Answer_Desc" Type="nvarchar(max)" />
+          <Property Name="Answer_Marks" Type="int" />
+          <Property Name="Comment" Type="varchar(max)" />
           <Property Name="EvalID" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
         </EntityType>
         <EntityType Name="conQuestion_Answer">
@@ -37,22 +37,6 @@
     <!-- CSDL content -->
     <edmx:ConceptualModels>
       <Schema Namespace="testingModel" Alias="Self" annotation:UseStrongSpatialTypes="false" xmlns:annotation="http://schemas.microsoft.com/ado/2009/02/edm/annotation" xmlns:customannotation="http://schemas.microsoft.com/ado/2013/11/edm/customannotation" xmlns="http://schemas.microsoft.com/ado/2009/11/edm">
-        <EntityType Name="ConfEval">
-          <Key>
-            <PropertyRef Name="EvalID" />
-          </Key>
-          <Property Name="Emp_no" Type="String" MaxLength="7" FixedLength="true" Unicode="false" Nullable="false" />
-          <Property Name="Reg_No" Type="String" MaxLength="50" FixedLength="false" Unicode="true" Nullable="false" />
-          <Property Name="Course_no" Type="String" MaxLength="9" FixedLength="false" Unicode="false" Nullable="false" />
-          <Property Name="Discipline" Type="String" MaxLength="20" FixedLength="false" Unicode="false" Nullable="false" />
-          <Property Name="Semester_no" Type="String" MaxLength="100" FixedLength="false" Unicode="true" Nullable="true" />
-          <Property Name="Question" Type="String" MaxLength="Max" FixedLength="false" Unicode="true" />
-          <Property Name="Question_Desc" Type="Int32" Nullable="false" />
-          <Property Name="Answer_Desc" Type="String" MaxLength="50" FixedLength="false" Unicode="true" Nullable="true" />
-          <Property Name="Answer_Marks" Type="Int32" Nullable="true" />
-          <Property Name="Comment" Type="String" MaxLength="100" FixedLength="false" Unicode="false" />
-          <Property Name="EvalID" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
-        </EntityType>
         <EntityType Name="conQuestion_Answer">
           <Key>
             <PropertyRef Name="Question_ID" />
@@ -62,38 +46,54 @@
           <Property Name="Description" Type="String" MaxLength="30" FixedLength="false" Unicode="false" />
         </EntityType>
         <EntityContainer Name="testingEntities2" annotation:LazyLoadingEnabled="true">
-          <EntitySet Name="ConfEvals" EntityType="Self.ConfEval" />
           <EntitySet Name="conQuestion_Answer" EntityType="Self.conQuestion_Answer" />
+          <EntitySet Name="ConfEvals" EntityType="testingModel.ConfEval" />
         </EntityContainer>
+        <EntityType Name="ConfEval">
+          <Key>
+            <PropertyRef Name="EvalID" />
+          </Key>
+          <Property Name="Emp_no" Type="String" Nullable="false" MaxLength="7" FixedLength="true" Unicode="false" />
+          <Property Name="Reg_No" Type="String" Nullable="false" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="Course_no" Type="String" Nullable="false" MaxLength="9" FixedLength="false" Unicode="false" />
+          <Property Name="Discipline" Type="String" Nullable="false" MaxLength="20" FixedLength="false" Unicode="false" />
+          <Property Name="Semester_no" Type="String" Nullable="false" MaxLength="100" FixedLength="false" Unicode="true" />
+          <Property Name="Question" Type="String" Nullable="false" MaxLength="Max" FixedLength="false" Unicode="false" />
+          <Property Name="Question_Desc" Type="Int32" Nullable="false" />
+          <Property Name="Answer_Desc" Type="String" MaxLength="Max" FixedLength="false" Unicode="true" />
+          <Property Name="Answer_Marks" Type="Int32" />
+          <Property Name="Comment" Type="String" MaxLength="Max" FixedLength="false" Unicode="false" />
+          <Property Name="EvalID" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+        </EntityType>
       </Schema>
     </edmx:ConceptualModels>
     <!-- C-S mapping content -->
     <edmx:Mappings>
       <Mapping Space="C-S" xmlns="http://schemas.microsoft.com/ado/2009/11/mapping/cs">
         <EntityContainerMapping StorageEntityContainer="testingModelStoreContainer" CdmEntityContainer="testingEntities2">
-          <EntitySetMapping Name="ConfEvals">
-            <EntityTypeMapping TypeName="testingModel.ConfEval">
-              <MappingFragment StoreEntitySet="ConfEval">
-                <ScalarProperty Name="Emp_no" ColumnName="Emp_no" />
-                <ScalarProperty Name="Reg_No" ColumnName="Reg_No" />
-                <ScalarProperty Name="Course_no" ColumnName="Course_no" />
-                <ScalarProperty Name="Discipline" ColumnName="Discipline" />
-                <ScalarProperty Name="Semester_no" ColumnName="Semester_no" />
-                <ScalarProperty Name="Question" ColumnName="Question" />
-                <ScalarProperty Name="Question_Desc" ColumnName="Question_Desc" />
-                <ScalarProperty Name="Answer_Desc" ColumnName="Answer_Desc" />
-                <ScalarProperty Name="Answer_Marks" ColumnName="Answer_Marks" />
-                <ScalarProperty Name="Comment" ColumnName="Comment" />
-                <ScalarProperty Name="EvalID" ColumnName="EvalID" />
-              </MappingFragment>
-            </EntityTypeMapping>
-          </EntitySetMapping>
           <EntitySetMapping Name="conQuestion_Answer">
             <EntityTypeMapping TypeName="testingModel.conQuestion_Answer">
               <MappingFragment StoreEntitySet="conQuestion_Answer">
                 <ScalarProperty Name="Question_ID" ColumnName="Question_ID" />
                 <ScalarProperty Name="Question" ColumnName="Question" />
                 <ScalarProperty Name="Description" ColumnName="Description" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="ConfEvals">
+            <EntityTypeMapping TypeName="testingModel.ConfEval">
+              <MappingFragment StoreEntitySet="ConfEval">
+                <ScalarProperty Name="EvalID" ColumnName="EvalID" />
+                <ScalarProperty Name="Comment" ColumnName="Comment" />
+                <ScalarProperty Name="Answer_Marks" ColumnName="Answer_Marks" />
+                <ScalarProperty Name="Answer_Desc" ColumnName="Answer_Desc" />
+                <ScalarProperty Name="Question_Desc" ColumnName="Question_Desc" />
+                <ScalarProperty Name="Question" ColumnName="Question" />
+                <ScalarProperty Name="Semester_no" ColumnName="Semester_no" />
+                <ScalarProperty Name="Discipline" ColumnName="Discipline" />
+                <ScalarProperty Name="Course_no" ColumnName="Course_no" />
+                <ScalarProperty Name="Reg_No" ColumnName="Reg_No" />
+                <ScalarProperty Name="Emp_no" ColumnName="Emp_no" />
               </MappingFragment>
             </EntityTypeMapping>
           </EntitySetMapping>
