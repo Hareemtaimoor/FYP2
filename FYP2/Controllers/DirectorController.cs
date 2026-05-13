@@ -18,7 +18,7 @@ namespace FYP2.Controllers
     {
         private const string FallbackAesKeyBase64 = "vrHFCSCrUlrMHNWFTYJgS09SfZFC+QY0PuMuOz0pyXY=";
         private readonly Teacher_Evaluation_SystemEntities3 db = new Teacher_Evaluation_SystemEntities3();
-        private readonly testingEntities1 dbTest = new testingEntities1();
+        private readonly testingEntities2 dbTest = new testingEntities2();
 
         // 1. Get All Sessions (Dropdown)
         // URL: /api/Director/GetAllSessions
@@ -249,34 +249,53 @@ namespace FYP2.Controllers
                     return BadRequest("No records found in decrypted CSV.");
                 }
 
-                var questionMap = db.Question_Answer
-                    .ToList()
-                    .GroupBy(q => (q.Question ?? string.Empty).Trim(), StringComparer.OrdinalIgnoreCase)
-                    .ToDictionary(g => g.Key, g => g.First().Question_ID, StringComparer.OrdinalIgnoreCase);
+                Dictionary<string, int> questionMap = null;
+                if (importedRows.Any(r => !r.QuestionId.HasValue))
+                {
+                    questionMap = dbTest.conQuestion_Answer
+                        .ToList()
+                        .GroupBy(q => (q.Question ?? string.Empty).Trim(), StringComparer.OrdinalIgnoreCase)
+                        .ToDictionary(g => g.Key, g => g.First().Question_ID, StringComparer.OrdinalIgnoreCase);
+                }
 
                 var semester = GetAridSemester();
                 int savedCount = 0;
 
                 foreach (var row in importedRows)
                 {
-                    if (!questionMap.TryGetValue((row.Question ?? string.Empty).Trim(), out int questionId))
+                    if (string.IsNullOrWhiteSpace(row.EmpNo) ||
+                        string.IsNullOrWhiteSpace(row.RegNo) ||
+                        string.IsNullOrWhiteSpace(row.CourseNo) ||
+                        string.IsNullOrWhiteSpace(row.Discipline))
                     {
                         continue;
                     }
 
-                    var eval = new Eval
+                    int questionId;
+                    if (row.QuestionId.HasValue)
                     {
-                        Emp_no = row.EmpNo,
-                        Reg_No = row.RegNo,
-                        Course_no = row.CourseNo,
-                        Discipline = row.Discipline,
-                        Semester_no = semester,
+                        questionId = row.QuestionId.Value;
+                    }
+                    else if (questionMap == null || !questionMap.TryGetValue((row.Question ?? string.Empty).Trim(), out questionId))
+                    {
+                        continue;
+                    }
+
+                    var eval = new ConfEval
+                    {
+                        Emp_no = Limit(row.EmpNo, 7),
+                        Reg_No = Limit(row.RegNo, 50),
+                        Course_no = Limit(row.CourseNo, 9),
+                        Discipline = Limit(row.Discipline, 20),
+                        Semester_no = Limit(semester, 100),
+                        Question = row.Question,
                         Question_Desc = questionId,
                         Answer_Marks = row.Rating,
-                        Answer_Desc = GetRatingText(row.Rating)
+                        Answer_Desc = Limit(GetRatingText(row.Rating), 50),
+                        Comment = Limit(row.Comment, 100)
                     };
 
-                    db.Evals.Add(eval);
+                    dbTest.ConfEvals.Add(eval);
                     savedCount++;
                 }
 
@@ -285,7 +304,7 @@ namespace FYP2.Controllers
                     return BadRequest("No rows were imported. Questions did not match database question text.");
                 }
 
-                db.SaveChanges();
+                dbTest.SaveChanges();
                 return Ok(new
                 {
                     message = "Encrypted confidential file imported successfully.",
@@ -294,7 +313,7 @@ namespace FYP2.Controllers
             }
             catch (Exception ex)
             {
-                return InternalServerError(ex);
+                return BadRequest(GetFullExceptionMessage(ex));
             }
         }
 
@@ -617,7 +636,29 @@ namespace FYP2.Controllers
                     continue;
                 }
 
-                if (!int.TryParse(columns[8], out int rating))
+                int? questionId = null;
+                string question;
+                string comment = string.Empty;
+                int ratingColumnIndex;
+
+                if (columns.Count >= 11)
+                {
+                    if (int.TryParse(columns[7], out int parsedQuestionId))
+                    {
+                        questionId = parsedQuestionId;
+                    }
+
+                    question = columns[8]?.Trim();
+                    ratingColumnIndex = 9;
+                    comment = columns[10]?.Trim();
+                }
+                else
+                {
+                    question = columns[7]?.Trim();
+                    ratingColumnIndex = 8;
+                }
+
+                if (!int.TryParse(columns[ratingColumnIndex], out int rating))
                 {
                     continue;
                 }
@@ -628,12 +669,47 @@ namespace FYP2.Controllers
                     RegNo = columns[1]?.Trim(),
                     CourseNo = columns[4]?.Trim(),
                     Discipline = columns[6]?.Trim(),
-                    Question = columns[7]?.Trim(),
-                    Rating = rating
+                    QuestionId = questionId,
+                    Question = question,
+                    Rating = rating,
+                    Comment = comment
                 });
             }
 
             return results;
+        }
+
+        private string Limit(string value, int maxLength)
+        {
+            var trimmed = value?.Trim();
+            if (string.IsNullOrEmpty(trimmed) || trimmed.Length <= maxLength)
+            {
+                return trimmed;
+            }
+
+            return trimmed.Substring(0, maxLength);
+        }
+
+        private string GetFullExceptionMessage(Exception ex)
+        {
+            var validationException = ex as System.Data.Entity.Validation.DbEntityValidationException;
+            if (validationException != null)
+            {
+                var validationMessages = validationException.EntityValidationErrors
+                    .SelectMany(e => e.ValidationErrors)
+                    .Select(e => e.PropertyName + ": " + e.ErrorMessage);
+
+                return string.Join(" | ", validationMessages);
+            }
+
+            var messages = new List<string>();
+            while (ex != null)
+            {
+                messages.Add(ex.Message);
+                ex = ex.InnerException;
+            }
+
+            return string.Join(" | ", messages);
         }
 
         private List<string> SplitCsvLine(string line)
@@ -713,7 +789,9 @@ namespace FYP2.Controllers
         public string RegNo { get; set; }
         public string CourseNo { get; set; }
         public string Discipline { get; set; }
+        public int? QuestionId { get; set; }
         public string Question { get; set; }
         public int Rating { get; set; }
+        public string Comment { get; set; }
     }
 }

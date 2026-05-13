@@ -81,7 +81,7 @@ namespace FYP2.Controllers
             catch (Exception ex)
             {
 
-                return Request.CreateErrorResponse(HttpStatusCode.InternalServerError, ex.ToString());
+                return Request.CreateErrorResponse(HttpStatusCode.InternalServerError, GetFullExceptionMessage(ex));
             }
         }
         [HttpGet]
@@ -173,7 +173,7 @@ namespace FYP2.Controllers
                         Discipline = request.Discipline?.Trim(),
                         Semester_no = currentSemester,
                         Question_Desc = ans.Question_ID,
-                        Answer_Desc = GetRatingText(ans.Rating),
+                        Answer_Desc = GetAnswerDescription(ans),
                         Answer_Marks = ans.Rating
                     };
                     db.Evals.Add(evaluation);
@@ -213,6 +213,16 @@ namespace FYP2.Controllers
                 case 1: return "Poor";
                 default: return "N/A";
             }
+        }
+
+        private string GetAnswerDescription(AnswerDetail answer)
+        {
+            if (!string.IsNullOrWhiteSpace(answer?.Comment))
+            {
+                return Limit(NormalizeCsvText(answer.Comment), 50);
+            }
+
+            return GetRatingText(answer?.Rating ?? 0);
         }
         [HttpGet]
         public HttpResponseMessage getConfidentialStudent(string AridNo)
@@ -328,6 +338,10 @@ namespace FYP2.Controllers
             var questionMap = db.Question_Answer
                 .Where(q => questionIds.Contains(q.Question_ID))
                 .ToDictionary(q => q.Question_ID, q => q.Question);
+            var requestQuestionMap = (request.QuestionList ?? new List<QuestionDetail>())
+                .Where(q => q.ResolvedQuestionId > 0)
+                .GroupBy(q => q.ResolvedQuestionId)
+                .ToDictionary(g => g.Key, g => g.First().ResolvedQuestionText);
 
             var studentName = student == null
                 ? string.Empty
@@ -337,12 +351,13 @@ namespace FYP2.Controllers
             var courseTitle = course?.Course_desc?.Trim() ?? string.Empty;
 
             var csv = new StringBuilder();
-            csv.AppendLine("Emp_no,Reg_no,StudentName,TeacherName,Course_no,CourseTitle,Discipline,Question,Rating");
+            csv.AppendLine("Emp_no,Reg_no,StudentName,TeacherName,Course_no,CourseTitle,Discipline,Question_ID,Question,Rating,Comment");
 
             foreach (var answer in request.Answers)
             {
                 string questionText;
-                if (!questionMap.TryGetValue(answer.Question_ID, out questionText))
+                if (!requestQuestionMap.TryGetValue(answer.Question_ID, out questionText) &&
+                    !questionMap.TryGetValue(answer.Question_ID, out questionText))
                 {
                     questionText = "Question not found (ID: " + answer.Question_ID + ")";
                 }
@@ -355,8 +370,10 @@ namespace FYP2.Controllers
                     EscapeCsvField(courseNo),
                     EscapeCsvField(courseTitle),
                     EscapeCsvField(request.Discipline?.Trim()),
+                    EscapeCsvField(answer.Question_ID.ToString()),
                     EscapeCsvField(questionText),
-                    EscapeCsvField(answer.Rating.ToString())
+                    EscapeCsvField(answer.Rating.ToString()),
+                    EscapeCsvField(Limit(NormalizeCsvText(answer.Comment), 100))
                 ));
             }
 
@@ -375,6 +392,35 @@ namespace FYP2.Controllers
             }
 
             return mustQuote ? "\"" + safeValue + "\"" : safeValue;
+        }
+
+        private static string NormalizeCsvText(string value)
+        {
+            return string.IsNullOrWhiteSpace(value)
+                ? string.Empty
+                : value.Replace("\r\n", " ").Replace("\n", " ").Replace("\r", " ").Trim();
+        }
+
+        private static string Limit(string value, int maxLength)
+        {
+            if (string.IsNullOrEmpty(value) || value.Length <= maxLength)
+            {
+                return value;
+            }
+
+            return value.Substring(0, maxLength);
+        }
+
+        private static string GetFullExceptionMessage(Exception ex)
+        {
+            var messages = new List<string>();
+            while (ex != null)
+            {
+                messages.Add(ex.Message);
+                ex = ex.InnerException;
+            }
+
+            return string.Join(" | ", messages);
         }
 
         private void SendConfidentialCsvEmail(string csvContent, int rowCount)
@@ -483,6 +529,7 @@ public class EvaluationRequest
     public string Reg_no { get; set; }
     public string Course_no { get; set; }
     public string Discipline { get; set; }
+    public List<QuestionDetail> QuestionList { get; set; }
     public List<AnswerDetail> Answers { get; set; }
 }
 
@@ -490,4 +537,25 @@ public class AnswerDetail
 {
     public int Question_ID { get; set; }
     public int Rating { get; set; }
+    public string Comment { get; set; }
+}
+
+public class QuestionDetail
+{
+    public int Question_ID { get; set; }
+    public int Question_Id { get; set; }
+    public string Question { get; set; }
+    public string Question1 { get; set; }
+    public string Question_type { get; set; }
+    public string RawType { get; set; }
+
+    public int ResolvedQuestionId
+    {
+        get { return Question_ID > 0 ? Question_ID : Question_Id; }
+    }
+
+    public string ResolvedQuestionText
+    {
+        get { return !string.IsNullOrWhiteSpace(Question) ? Question : Question1; }
+    }
 }

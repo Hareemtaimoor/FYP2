@@ -51,6 +51,12 @@
     <Reference Include="EntityFramework.SqlServer, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL">
       <HintPath>..\packages\EntityFramework.6.2.0\lib\net45\EntityFramework.SqlServer.dll</HintPath>
     </Reference>
+    <Reference Include="ExcelDataReader, Version=3.8.0.0, Culture=neutral, PublicKeyToken=93517dbe6a4012fa, processorArchitecture=MSIL">
+      <HintPath>..\packages\ExcelDataReader.3.8.0\lib\net462\ExcelDataReader.dll</HintPath>
+    </Reference>
+    <Reference Include="ExcelDataReader.DataSet, Version=3.8.0.0, Culture=neutral, PublicKeyToken=93517dbe6a4012fa, processorArchitecture=MSIL">
+      <HintPath>..\packages\ExcelDataReader.DataSet.3.8.0\lib\net462\ExcelDataReader.DataSet.dll</HintPath>
+    </Reference>
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="Newtonsoft.Json.Bson, Version=1.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <HintPath>..\packages\Newtonsoft.Json.Bson.1.0.2\lib\net45\Newtonsoft.Json.Bson.dll</HintPath>
@@ -61,6 +67,7 @@
     </Reference>
     <Reference Include="System.Data" />
     <Reference Include="System.Drawing" />
+    <Reference Include="System.IO.Compression" />
     <Reference Include="System.Memory, Version=4.0.1.2, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
       <HintPath>..\packages\System.Memory.4.5.5\lib\net461\System.Memory.dll</HintPath>
     </Reference>
@@ -77,6 +84,9 @@
     <Reference Include="System.Security" />
     <Reference Include="System.Threading.Tasks.Extensions, Version=4.2.0.1, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
       <HintPath>..\packages\System.Threading.Tasks.Extensions.4.5.4\lib\net461\System.Threading.Tasks.Extensions.dll</HintPath>
+    </Reference>
+    <Reference Include="System.ValueTuple, Version=4.0.3.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.ValueTuple.4.5.0\lib\net47\System.ValueTuple.dll</HintPath>
     </Reference>
     <Reference Include="System.Web.Cors, Version=5.3.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
       <HintPath>..\packages\Microsoft.AspNet.Cors.5.3.0\lib\net45\System.Web.Cors.dll</HintPath>
@@ -181,6 +191,7 @@
     <Compile Include="Areas\HelpPage\SampleGeneration\SampleDirection.cs" />
     <Compile Include="Areas\HelpPage\SampleGeneration\TextSample.cs" />
     <Compile Include="Areas\HelpPage\XmlDocumentationProvider.cs" />
+    <Compile Include="Controllers\AdminController.cs" />
     <Compile Include="Controllers\DirectorController.cs" />
     <Compile Include="Controllers\HomeController.cs" />
     <Compile Include="Controllers\LogInController.cs" />
@@ -202,26 +213,26 @@
     <Compile Include="Models\ClassReport.cs">
       <DependentUpon>Model1.tt</DependentUpon>
     </Compile>
-    <Compile Include="Models\conEval.cs">
-      <DependentUpon>confidential.tt</DependentUpon>
-    </Compile>
-    <Compile Include="Models\confidential.Context.cs">
+    <Compile Include="Models\ConEval.Context.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
-      <DependentUpon>confidential.Context.tt</DependentUpon>
+      <DependentUpon>ConEval.Context.tt</DependentUpon>
     </Compile>
-    <Compile Include="Models\confidential.cs">
+    <Compile Include="Models\ConEval.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
-      <DependentUpon>confidential.tt</DependentUpon>
+      <DependentUpon>ConEval.tt</DependentUpon>
     </Compile>
-    <Compile Include="Models\confidential.Designer.cs">
+    <Compile Include="Models\ConEval.Designer.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
-      <DependentUpon>confidential.edmx</DependentUpon>
+      <DependentUpon>ConEval.edmx</DependentUpon>
+    </Compile>
+    <Compile Include="Models\ConfEval.cs">
+      <DependentUpon>ConEval.tt</DependentUpon>
     </Compile>
     <Compile Include="Models\conQuestion_Answer.cs">
-      <DependentUpon>confidential.tt</DependentUpon>
+      <DependentUpon>ConEval.tt</DependentUpon>
     </Compile>
     <Compile Include="Models\Crsdtl.cs">
       <DependentUpon>Model1.tt</DependentUpon>
@@ -305,15 +316,15 @@
     <Content Include="Content\bootstrap.rtl.min.css" />
     <Content Include="favicon.ico" />
     <Content Include="Global.asax" />
-    <Content Include="Models\confidential.Context.tt">
+    <Content Include="Models\ConEval.Context.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
-      <DependentUpon>confidential.edmx</DependentUpon>
-      <LastGenOutput>confidential.Context.cs</LastGenOutput>
+      <DependentUpon>ConEval.edmx</DependentUpon>
+      <LastGenOutput>ConEval.Context.cs</LastGenOutput>
     </Content>
-    <Content Include="Models\confidential.tt">
+    <Content Include="Models\ConEval.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
-      <DependentUpon>confidential.edmx</DependentUpon>
-      <LastGenOutput>confidential.cs</LastGenOutput>
+      <DependentUpon>ConEval.edmx</DependentUpon>
+      <LastGenOutput>ConEval.cs</LastGenOutput>
     </Content>
     <Content Include="Models\Model1.Context.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
@@ -357,12 +368,12 @@
     <Content Include="Models\Model1.edmx.diagram">
       <DependentUpon>Model1.edmx</DependentUpon>
     </Content>
-    <EntityDeploy Include="Models\confidential.edmx">
+    <EntityDeploy Include="Models\ConEval.edmx">
       <Generator>EntityModelCodeGenerator</Generator>
-      <LastGenOutput>confidential.Designer.cs</LastGenOutput>
+      <LastGenOutput>ConEval.Designer.cs</LastGenOutput>
     </EntityDeploy>
-    <Content Include="Models\confidential.edmx.diagram">
-      <DependentUpon>confidential.edmx</DependentUpon>
+    <Content Include="Models\ConEval.edmx.diagram">
+      <DependentUpon>ConEval.edmx</DependentUpon>
     </Content>
     <None Include="Scripts\jquery-3.7.0.intellisense.js" />
     <Content Include="Scripts\jquery-3.7.0.js" />

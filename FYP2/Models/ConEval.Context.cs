@@ -13,10 +13,10 @@ namespace FYP2.Models
     using System.Data.Entity;
     using System.Data.Entity.Infrastructure;
     
-    public partial class testingEntities1 : DbContext
+    public partial class testingEntities2 : DbContext
     {
-        public testingEntities1()
-            : base("name=testingEntities1")
+        public testingEntities2()
+            : base("name=testingEntities2")
         {
         }
     
@@ -25,7 +25,7 @@ namespace FYP2.Models
             throw new UnintentionalCodeFirstException();
         }
     
-        public virtual DbSet<conEval> conEvals { get; set; }
+        public virtual DbSet<ConfEval> ConfEvals { get; set; }
         public virtual DbSet<conQuestion_Answer> conQuestion_Answer { get; set; }
     }
 }
