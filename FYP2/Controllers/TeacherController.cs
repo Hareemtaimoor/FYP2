@@ -11,10 +11,10 @@ namespace FYP2.Controllers
 {
     public class TeacherController : ApiController
     {
-      
-            Teacher_Evaluation_SystemEntities3 db = new Teacher_Evaluation_SystemEntities3();
 
-            // 1. Teachers ki list get karne ke liye
+        Teacher_Evaluation_SystemEntities3 db = new Teacher_Evaluation_SystemEntities3();
+
+        // 1. Teachers ki list get karne ke liye
         [HttpGet]
         public HttpResponseMessage GetAllTeachers()
         {
@@ -373,6 +373,4 @@ namespace FYP2.Controllers
             public int Rating { get; set; }
         }
     }
-    }
-
-
+}

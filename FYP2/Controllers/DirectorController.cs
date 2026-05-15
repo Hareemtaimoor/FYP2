@@ -1,6 +1,6 @@
-﻿using System;
+﻿using FYP2.Models;
+using System;
 using System.Collections.Generic;
-using FYP2.Models;
 using System.Configuration;
 using System.Data.Entity;
 using System.IO;
@@ -11,6 +11,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Web;
 using System.Web.Http;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace FYP2.Controllers
 {
@@ -314,6 +315,365 @@ namespace FYP2.Controllers
             catch (Exception ex)
             {
                 return BadRequest(GetFullExceptionMessage(ex));
+            }
+        }
+
+        // --- Confidential evaluation (testing DB / ConfEval) — mirror simple Eval dashboard ---
+
+        /// <summary>Distinct semester keys stored on confidential imports (e.g. 2026FM). Use for dropdowns.</summary>
+        [HttpGet]
+        [Route("api/Director/GetConfidentialSemesters")]
+        public HttpResponseMessage GetConfidentialSemesters()
+        {
+            try
+            {
+                var list = dbTest.ConfEvals.AsNoTracking()
+                    .Where(x => x.Semester_no != null)
+                    .Select(x => x.Semester_no)
+                    .Distinct()
+                    .ToList()
+                    .Select(s => s.Trim())
+                    .Where(s => s.Length > 0)
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .OrderByDescending(s => s)
+                    .ToList();
+
+                return Request.CreateResponse(HttpStatusCode.OK, list);
+            }
+            catch (Exception ex)
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.InternalServerError, GetFullExceptionMessage(ex));
+            }
+        }
+
+        /// <summary>Confidential question bank (testing.conQuestion_Answer).</summary>
+        [HttpGet]
+        [Route("api/Director/GetConfidentialQuestions")]
+        public HttpResponseMessage GetConfidentialQuestions()
+        {
+            try
+            {
+                var questions = dbTest.conQuestion_Answer.AsNoTracking()
+                    .Select(q => new
+                    {
+                        q.Question_ID,
+                        q.Question,
+                        Type = q.Description
+                    })
+                    .OrderBy(q => q.Question_ID)
+                    .ToList();
+
+                return Request.CreateResponse(HttpStatusCode.OK, questions);
+            }
+            catch (Exception ex)
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.InternalServerError, GetFullExceptionMessage(ex));
+            }
+        }
+
+        /// <summary>
+        /// Teachers who appear on confidential evaluations for students in the given SOS session
+        /// (ConfEval joined to STMTR on Reg_No). Same response shape as GetAllocatedTeachers.
+        /// </summary>
+        [HttpGet]
+        [Route("api/Director/GetConfidentialAllocatedTeachers")]
+        public HttpResponseMessage GetConfidentialAllocatedTeachers(string session)
+        {
+            try
+            {
+                var sessionTrim = session?.Trim();
+                if (string.IsNullOrEmpty(sessionTrim))
+                {
+                    return Request.CreateErrorResponse(HttpStatusCode.BadRequest, "session query parameter is required.");
+                }
+
+                var teachers = (from ce in dbTest.ConfEvals.AsNoTracking()
+                                join st in db.STMTRs.AsNoTracking() on ce.Reg_No.Trim() equals st.Reg_No.Trim()
+                                where st.SOS.Trim() == sessionTrim
+                                join t in db.EMPMTRs.AsNoTracking() on ce.Emp_no equals t.Emp_no
+                                select new
+                                {
+                                    TeacherID = t.Emp_no,
+                                    TeacherName = t.Name,
+                                    Designation = t.Designation
+                                })
+                    .Distinct()
+                    .ToList();
+
+                if (!teachers.Any())
+                {
+                    return Request.CreateResponse(HttpStatusCode.NotFound, "No confidential evaluations found for this session.");
+                }
+
+                return Request.CreateResponse(HttpStatusCode.OK, teachers);
+            }
+            catch (Exception ex)
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.InternalServerError, GetFullExceptionMessage(ex));
+            }
+        }
+
+        /// <summary>
+        /// Courses that appear on confidential evaluations for students in the given SOS session.
+        /// Same response shape as GetAllocatedCourses (CourseNo, CourseName).
+        /// </summary>
+        [HttpGet]
+        [Route("api/Director/GetConfidentialAllocatedCourses")]
+        public HttpResponseMessage GetConfidentialAllocatedCourses(string session)
+        {
+            try
+            {
+                var sessionTrim = session?.Trim();
+                if (string.IsNullOrEmpty(sessionTrim))
+                {
+                    return Request.CreateErrorResponse(HttpStatusCode.BadRequest, "session query parameter is required.");
+                }
+
+                var courses = (from ce in dbTest.ConfEvals.AsNoTracking()
+                               join st in db.STMTRs.AsNoTracking() on ce.Reg_No.Trim() equals st.Reg_No.Trim()
+                               where st.SOS.Trim() == sessionTrim
+                               join c in db.CRSMTRs.AsNoTracking() on ce.Course_no equals c.Course_no into cj
+                               from c in cj.DefaultIfEmpty()
+                               select new
+                               {
+                                   CourseNo = ce.Course_no,
+                                   CourseName = c != null ? c.Course_desc : ce.Course_no
+                               })
+                    .Distinct()
+                    .ToList();
+
+                if (!courses.Any())
+                {
+                    return Request.CreateResponse(HttpStatusCode.NotFound, "No confidential evaluations found for this session.");
+                }
+
+                return Request.CreateResponse(HttpStatusCode.OK, courses);
+            }
+            catch (Exception ex)
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.InternalServerError, GetFullExceptionMessage(ex));
+            }
+        }
+
+        /// <summary>Paged raw rows from ConfEval. semester = Semester_no (same value used at import).</summary>
+        [HttpGet]
+        [Route("api/Director/GetConfidentialEvaluations")]
+        public HttpResponseMessage GetConfidentialEvaluations(
+            string semester = null,
+            string empNo = null,
+            string courseNo = null,
+            string regNo = null,
+            string discipline = null,
+            int skip = 0,
+            int take = 500)
+        {
+            try
+            {
+                if (take < 1) take = 50;
+                if (take > 2000) take = 2000;
+                if (skip < 0) skip = 0;
+
+                var q = dbTest.ConfEvals.AsNoTracking().AsQueryable();
+
+                var semTrim = semester?.Trim();
+                if (!string.IsNullOrEmpty(semTrim))
+                {
+                    q = q.Where(x => x.Semester_no == semTrim);
+                }
+
+                var empTrim = empNo?.Trim();
+                if (!string.IsNullOrEmpty(empTrim))
+                {
+                    q = q.Where(x => x.Emp_no == empTrim);
+                }
+
+                var courseTrim = courseNo?.Trim();
+                if (!string.IsNullOrEmpty(courseTrim))
+                {
+                    q = q.Where(x => x.Course_no == courseTrim);
+                }
+
+                var regTrim = regNo?.Trim();
+                if (!string.IsNullOrEmpty(regTrim))
+                {
+                    q = q.Where(x => x.Reg_No == regTrim);
+                }
+
+                var discTrim = discipline?.Trim();
+                if (!string.IsNullOrEmpty(discTrim))
+                {
+                    q = q.Where(x => x.Discipline == discTrim);
+                }
+
+                var total = q.Count();
+
+                var rows = q.OrderByDescending(x => x.EvalID)
+                    .Skip(skip)
+                    .Take(take)
+                    .Select(x => new
+                    {
+                        x.EvalID,
+                        x.Emp_no,
+                        x.Reg_No,
+                        x.Course_no,
+                        x.Discipline,
+                        x.Semester_no,
+                        x.Question,
+                        x.Question_Desc,
+                        x.Answer_Desc,
+                        x.Answer_Marks,
+                        x.Comment
+                    })
+                    .ToList();
+
+                return Request.CreateResponse(HttpStatusCode.OK, new { total, skip, take, rows });
+            }
+            catch (Exception ex)
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.InternalServerError, GetFullExceptionMessage(ex));
+            }
+        }
+
+        /// <summary>Average rating per teacher for one confidential semester (ConfEval.Semester_no).</summary>
+        [HttpGet]
+        [Route("api/Director/GetConfidentialTeacherAverageRatings")]
+        public HttpResponseMessage GetConfidentialTeacherAverageRatings(string semester)
+        {
+            try
+            {
+                var semTrim = semester?.Trim();
+                if (string.IsNullOrEmpty(semTrim))
+                {
+                    return Request.CreateErrorResponse(HttpStatusCode.BadRequest, "semester query parameter is required (ConfEval.Semester_no, e.g. 2026FM).");
+                }
+
+                var ratings = (from ce in dbTest.ConfEvals.AsNoTracking()
+                                 where ce.Semester_no == semTrim && ce.Answer_Marks != null
+                                 group ce by ce.Emp_no into g
+                                 select new
+                                 {
+                                     TeacherID = g.Key,
+                                     AverageRating = g.Average(x => (double?)x.Answer_Marks) ?? 0
+                                 }).ToList();
+
+                var empIds = ratings.Select(r => r.TeacherID).Where(id => id != null).Distinct().ToList();
+                var nameLookup = db.EMPMTRs.AsNoTracking()
+                    .Where(t => empIds.Contains(t.Emp_no))
+                    .Select(t => new { t.Emp_no, t.Name })
+                    .ToList()
+                    .GroupBy(t => t.Emp_no.Trim(), StringComparer.OrdinalIgnoreCase)
+                    .ToDictionary(g => g.Key, g => (g.First().Name ?? "").Trim(), StringComparer.OrdinalIgnoreCase);
+
+                var result = ratings.Select(r =>
+                {
+                    var key = (r.TeacherID ?? "").Trim();
+                    string name;
+                    if (!nameLookup.TryGetValue(key, out name))
+                    {
+                        name = key;
+                    }
+
+                    return new
+                    {
+                        r.TeacherID,
+                        TeacherName = name,
+                        AverageRating = Math.Round(r.AverageRating, 1)
+                    };
+                }).ToList();
+
+                return Request.CreateResponse(HttpStatusCode.OK, result);
+            }
+            catch (Exception ex)
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.InternalServerError, GetFullExceptionMessage(ex));
+            }
+        }
+
+        /// <summary>Same idea as GetComparisonData: averages per teacher and question for confidential rows.</summary>
+        [HttpPost]
+        [Route("api/Director/GetConfidentialComparisonData")]
+        public HttpResponseMessage GetConfidentialComparisonData([FromBody] GraphRequest req)
+        {
+            try
+            {
+                if (req == null)
+                {
+                    return Request.CreateErrorResponse(HttpStatusCode.BadRequest, "Request body is required.");
+                }
+
+                if (req.TeacherIds == null || !req.TeacherIds.Any(id => !string.IsNullOrWhiteSpace(id)))
+                {
+                    return Request.CreateErrorResponse(HttpStatusCode.BadRequest, "TeacherIds must be a non-empty array.");
+                }
+
+                if (req.QuestionIds == null || !req.QuestionIds.Any())
+                {
+                    return Request.CreateErrorResponse(HttpStatusCode.BadRequest, "QuestionIds must be a non-empty array.");
+                }
+
+                var semesterTrim = req.Session?.Trim();
+                var courseTrim = req.CourseId?.Trim();
+                if (string.IsNullOrEmpty(semesterTrim) || string.IsNullOrEmpty(courseTrim))
+                {
+                    return Request.CreateErrorResponse(HttpStatusCode.BadRequest, "Session (confidential semester / Semester_no) and CourseId are required.");
+                }
+
+                var teacherIds = req.TeacherIds.Where(id => !string.IsNullOrWhiteSpace(id)).Select(id => id.Trim()).ToList();
+                var questionIds = req.QuestionIds.Distinct().ToList();
+
+                var queryData = (from ce in dbTest.ConfEvals.AsNoTracking()
+                                 where teacherIds.Contains(ce.Emp_no) &&
+                                       ce.Course_no == courseTrim &&
+                                       ce.Semester_no == semesterTrim &&
+                                       questionIds.Contains(ce.Question_Desc)
+                                 group ce by new { ce.Emp_no, ce.Question_Desc } into g
+                                 select new
+                                 {
+                                     TeacherID = g.Key.Emp_no,
+                                     QuestionNo = g.Key.Question_Desc,
+                                     AverageRating = g.Average(x => (double?)x.Answer_Marks) ?? 0
+                                 }).ToList();
+
+                return Request.CreateResponse(HttpStatusCode.OK, queryData);
+            }
+            catch (Exception ex)
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.InternalServerError, GetFullExceptionMessage(ex));
+            }
+        }
+
+        /// <summary>Mirror GetTeacherStudentEvalDetails: per-question average for one teacher/course/confidential semester.</summary>
+        [HttpGet]
+        [Route("api/Director/GetConfidentialTeacherQuestionDetails")]
+        public HttpResponseMessage GetConfidentialTeacherQuestionDetails(string teacherId, string semester, string courseId)
+        {
+            try
+            {
+                var tId = teacherId?.Trim();
+                var sem = semester?.Trim();
+                var cId = courseId?.Trim();
+
+                if (string.IsNullOrEmpty(tId) || string.IsNullOrEmpty(sem) || string.IsNullOrEmpty(cId))
+                {
+                    return Request.CreateResponse(HttpStatusCode.BadRequest, "teacherId, semester, and courseId are required.");
+                }
+
+                var data = (from ce in dbTest.ConfEvals.AsNoTracking()
+                            where ce.Emp_no == tId && ce.Semester_no == sem && ce.Course_no == cId
+                            group ce by ce.Question_Desc into g
+                            select new
+                            {
+                                label = "Q" + g.Key,
+                                score = Math.Round(g.Average(x => (double?)x.Answer_Marks) ?? 0, 1)
+                            })
+                    .OrderBy(x => x.label)
+                    .ToList();
+
+                return Request.CreateResponse(HttpStatusCode.OK, data);
+            }
+            catch (Exception ex)
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.InternalServerError, GetFullExceptionMessage(ex));
             }
         }
 
@@ -752,6 +1112,288 @@ namespace FYP2.Controllers
             fields.Add(current.ToString());
             return fields;
         }
+        [HttpGet]
+        [Route("api/Director/GetTeacherPeerEvalDetails")]
+        public HttpResponseMessage GetTeacherPeerEvalDetails(string teacherId, string session)
+        {
+            try
+            {
+                var tId = teacherId.Trim();
+                // Note: Agar aapki PeerEvaluation table mein session ka column nahi hai to niche wali line filter se hata dein
+                // var sess = session.Trim(); 
+
+                var data = db.PeerEvaluations
+                    .Where(p => p.Target_Emp_no == tId)
+                    .GroupBy(p => p.Question_Desc)
+                    .Select(g => new
+                    {
+                        label = "Q" + g.Key,
+                        score = Math.Round(g.Average(x => (double?)x.Answer_Marks) ?? 0, 1)
+                    })
+                    .ToList();
+
+                if (!data.Any())
+                {
+                    // Empty list agar data na mile
+                    return Request.CreateResponse(HttpStatusCode.OK, new List<object>());
+                }
+
+                return Request.CreateResponse(HttpStatusCode.OK, data);
+            }
+            catch (Exception ex)
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+            }
+        }
+        [HttpGet]
+        public HttpResponseMessage GetPeerAverageRatings(string session)
+        {
+            try
+            {
+                // Extract year (e.g., "2022")
+                var year = session?.Substring(0, 4);
+
+                // PeerEvaluation table mein Answer_Marks aur Target_Emp_no hain
+                var peerRatings = db.PeerEvaluations
+                    .Where(pe => pe.Answer_Marks != null)
+                    // Note: Agar PeerEvaluation mein session ka column nahi hai, 
+                    // to year filter hatana hoga ya join lagana hoga.
+                    .GroupBy(pe => pe.Target_Emp_no) // Grouping by Evaluated Teacher
+                    .Select(g => new
+                    {
+                        TeacherID = g.Key,
+                        AverageRating = g.Average(x => (double?)x.Answer_Marks) ?? 0
+                    })
+                    .ToList();
+
+                var result = peerRatings.Select(r => new
+                {
+                    r.TeacherID,
+                    AverageRating = Math.Round(r.AverageRating, 1)
+                }).ToList();
+
+                return Request.CreateResponse(HttpStatusCode.OK, result);
+            }
+            catch (Exception ex)
+            {
+                return Request.CreateErrorResponse(
+                    HttpStatusCode.InternalServerError,
+                    ex.InnerException?.Message ?? ex.Message
+                );
+            }
+        }
+        [HttpGet]
+        [Route("api/Director/GetCommonCoursesBySession_Teachers")]
+        public HttpResponseMessage GetCommonCoursesBySession_Teachers(string session, string teacherIds)
+        {
+            try
+            {
+                var sess = session?.Trim();
+                var selectedTeacherList = teacherIds.Split(',')
+                    .Select(id => id.Trim())
+                    .ToList();
+                int teacherCount = selectedTeacherList.Count;
+
+                var courses = (from ev in db.Evals
+                               join st in db.STMTRs on ev.Reg_No equals st.Reg_No
+                               join c in db.CRSMTRs on ev.Course_no equals c.Course_no
+                               // We join with ALLOCATE to link courses to the specific teachers
+                               join a in db.ALLOCATEs on new { C = ev.Course_no, S = st.SOS }
+                                                 equals new { C = a.COURSE_NO, S = a.SOS }
+                               where st.SOS == sess && selectedTeacherList.Contains(ev.Emp_no)
+                               group ev by new { ev.Course_no, c.Course_desc } into g
+                               // Check if the number of distinct teachers in the evaluations 
+                               // for this course matches the count of teachers selected
+                               where g.Select(x => x.Emp_no).Distinct().Count() == teacherCount
+                               select new
+                               {
+                                   Course_no = g.Key.Course_no,
+                                   Course_desc = g.Key.Course_desc
+                               })
+                .Distinct()
+                .ToList();
+
+                return Request.CreateResponse(HttpStatusCode.OK, courses);
+            }
+            catch (Exception ex)
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+            }
+        }
+        [HttpPost]
+        public HttpResponseMessage GetGradeDistribution([FromBody] GetGradeDistributionBody body)
+        {
+            try
+            {
+                if (body == null)
+                    return Request.CreateErrorResponse(HttpStatusCode.BadRequest, "Body is required");
+
+                var teacherIds = MergeIdLists(body.TeacherIds, body.teacherIds)
+                    .Where(x => !string.IsNullOrWhiteSpace(x))
+                    .Select(x => x.Trim())
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+
+                var courseIds = MergeIdLists(body.CourseIds, body.courseIds)
+                    .Where(x => !string.IsNullOrWhiteSpace(x))
+                    .Select(x => x.Trim())
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+
+                var sessionTrim = (body.Session ?? body.session ?? "").Trim();
+
+                if (teacherIds.Count == 0)
+                    return Request.CreateErrorResponse(HttpStatusCode.BadRequest, "TeacherIds is required.");
+                if (courseIds.Count == 0)
+                    return Request.CreateErrorResponse(HttpStatusCode.BadRequest, "CourseIds is required.");
+                if (string.IsNullOrEmpty(sessionTrim))
+                    return Request.CreateErrorResponse(HttpStatusCode.BadRequest, "Session is required.");
+
+                // One row per student (Reg_No) per teacher: average marks over all selected courses & questions
+                var perStudentTeacher = (from ev in db.Evals.AsNoTracking()
+                                         join st in db.STMTRs.AsNoTracking() on ev.Reg_No equals st.Reg_No
+                                         where st.SOS.Trim() == sessionTrim
+                                               && teacherIds.Contains(ev.Emp_no)
+                                               && courseIds.Contains(ev.Course_no)
+                                         group ev by new { ev.Reg_No, ev.Emp_no } into g
+                                         select new
+                                         {
+                                             g.Key.Reg_No,
+                                             g.Key.Emp_no,
+                                             AvgMark = g.Average(x => (double?)x.Answer_Marks) ?? 0
+                                         }).ToList();
+
+                var nameLookup = db.EMPMTRs.AsNoTracking()
+                    .Where(t => teacherIds.Contains(t.Emp_no))
+                    .Select(t => new { t.Emp_no, t.Name })
+                    .ToList()
+                    .GroupBy(t => t.Emp_no, StringComparer.OrdinalIgnoreCase)
+                    .ToDictionary(g => g.Key, g => g.First().Name ?? g.Key, StringComparer.OrdinalIgnoreCase);
+
+                var result = new List<object>();
+                foreach (var tid in teacherIds)
+                {
+                    int ga = 0, gb = 0, gc = 0, gd = 0;
+                    foreach (var row in perStudentTeacher.Where(x => string.Equals(x.Emp_no, tid, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        switch (LetterGradeFromAvg(row.AvgMark))
+                        {
+                            case "A": ga++; break;
+                            case "B": gb++; break;
+                            case "C": gc++; break;
+                            default: gd++; break;
+                        }
+                    }
+
+                    string tname;
+                    if (!nameLookup.TryGetValue(tid, out tname) || string.IsNullOrWhiteSpace(tname))
+                        tname = tid;
+
+                    result.Add(new
+                    {
+                        TeacherID = tid,
+                        TeacherName = tname,
+                        GradeA = ga,
+                        GradeB = gb,
+                        GradeC = gc,
+                        GradeD = gd
+                    });
+                }
+
+                return Request.CreateResponse(HttpStatusCode.OK, result);
+            }
+            catch (Exception ex)
+            {
+                return Request.CreateErrorResponse(
+                    HttpStatusCode.InternalServerError,
+                    ex.InnerException?.Message ?? ex.Message);
+            }
+        }
+
+        private static IEnumerable<string> MergeIdLists(IEnumerable<string> a, IEnumerable<string> b)
+        {
+            if (a != null)
+            {
+                foreach (var x in a)
+                    yield return x;
+            }
+            if (b != null)
+            {
+                foreach (var x in b)
+                    yield return x;
+            }
+        }
+
+        /// <summary>Map 1–5 style averages to A–D (tune thresholds to your policy).</summary>
+        private static string LetterGradeFromAvg(double avg)
+        {
+            if (avg >= 4.25) return "A";
+            if (avg >= 3.5) return "B";
+            if (avg >= 2.5) return "C";
+            return "D";
+        }
+
+
+        public class GetGradeDistributionBody
+        {
+            public List<string> TeacherIds { get; set; }
+            public List<string> CourseIds { get; set; }
+            public string Session { get; set; }
+
+            /// <summary>Optional camelCase binding from some clients.</summary>
+            public List<string> teacherIds { get; set; }
+            public List<string> courseIds { get; set; }
+            public string session { get; set; }
+        }
+        [HttpGet]
+        public HttpResponseMessage GetTeacherStudentEvalDetails(
+   string teacherId,
+   string session,
+   string courseId)
+        {
+            try
+            {
+                var tId = teacherId?.Trim();
+                var sess = session?.Trim();
+                var cId = courseId?.Trim();
+
+                if (string.IsNullOrEmpty(tId) ||
+                    string.IsNullOrEmpty(sess) ||
+                    string.IsNullOrEmpty(cId))
+                {
+                    return Request.CreateResponse(
+                        HttpStatusCode.BadRequest,
+                        "All parameters are required.");
+                }
+
+                var data = (from ev in db.Evals
+                            join st in db.STMTRs
+                            on ev.Reg_No.Trim() equals st.Reg_No.Trim()
+                            where ev.Emp_no.Trim() == tId
+                                  && st.SOS.Trim() == sess
+                                  && ev.Course_no.Trim() == cId
+                            group ev by ev.Question_Desc into g
+                            select new
+                            {
+                                label = "Q" + g.Key,
+                                score = Math.Round(
+                                    g.Average(x => (double?)x.Answer_Marks) ?? 0,
+                                    1)
+                            })
+                            .OrderBy(x => x.label)
+                            .ToList();
+
+                return Request.CreateResponse(HttpStatusCode.OK, data);
+            }
+            catch (Exception ex)
+            {
+                return Request.CreateErrorResponse(
+                    HttpStatusCode.InternalServerError,
+                    ex.Message);
+            }
+        }
+
+
 
         private string GetAridSemester()
         {
